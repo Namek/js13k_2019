@@ -31,29 +31,24 @@ function align(x: i32, by: i32): i32 {
 
 export function init(heapStart: i32): i32 {
   HEAP_START = heapStart;
-  IMAGE_START = HEAP_START + align(brushMatrix_size, 4);
-
-  const width: i32 = getCanvasWidth();
-  const height: i32 = getCanvasHeight();
-  const wh: i32 = width * height;
+  IMAGE_START = HEAP_START + align(brushMatrix_size * 4, 4);
   const brushMatrix: i32[] = HEAP_START;
-  
+
   let p: i32 = 0;
-  for (p = -brushMatrixRadius; p <= brushMatrixRadius; p+=1) {
-	const row: i32 = p + brushMatrixRadius;
-	
-	let q: i32 = 0;
-	for (q = -brushMatrixRadius; q <= brushMatrixRadius; q+=1) {
-	  const col: i32 = q + brushMatrixRadius;
-	  const element: i32 = Math_floor(0x3FFFFFFF * Math_exp(-0.05 * ((p * p) + (q * q))));
-	  //log(element);
-	  brushMatrix[row*brushWidth + col] = element;
-	}
-  }
+  let q: i32 = 0;
   
+  for (p = -brushMatrixRadius; p <= brushMatrixRadius; p+=1) {
+    const row: i32 = p + brushMatrixRadius;
+
+    for (q = -brushMatrixRadius; q <= brushMatrixRadius; q+=1) {
+      const col: i32 = q + brushMatrixRadius;
+      const element: i32 = Math_floor(0x3FFFFFFF *  Math_exp(-0.05 * ((p * p) + (q * q))));
+      brushMatrix[row*brushWidth + col] = element;
+    }
+  }
+
   return IMAGE_START;
 }
-
 
 function applyCap(x: i32) : i32 {
   if (x < -0x40000000) {
@@ -123,7 +118,8 @@ export function step(): void {
     if (status[i] == 1) {
       image[i] = 0xFFFF0000;
     } else {
-      image[i] = toRGB(u[i]);
+      const rgb: i32 = toRGB(u[i]);
+      image[i] = rgb;
     }
   }
 }
@@ -137,22 +133,22 @@ export function applyBrush(x: i32, y: i32) {
   
   let p: i32 = 0;
   for (p = -brushMatrixRadius; p <= brushMatrixRadius; p+=1) {
-	const targetY: i32 = y + p;
-	const row: i32 = p + brushMatrixRadius;
-	
-	if (!(targetY <= 0 || targetY >= height - 1)) {
-		let q: i32 = 0;
-		for (q = -brushMatrixRadius; q <= brushMatrixRadius; q+=1) {
-		  const targetX: i32 = x + q;
-		  const col: i32 = q + brushMatrixRadius;
-		  
-		  if (!(targetX <= 0 || targetX >= width - 1)) {
-			  const brushValue: i32 = brushMatrix[row * brushWidth + col];
-			  const targetIndex: i32 = targetY * width + targetX;
-			  force[targetIndex] += brushValue;
-			  force[targetIndex] = applyCap(force[targetIndex]);
-		  }
-		}
-	}
+    const targetY: i32 = y + p;
+    const row: i32 = p + brushMatrixRadius;
+    
+    if (!(targetY <= 0 || targetY >= height - 1)) {
+      let q: i32 = 0;
+      for (q = -brushMatrixRadius; q <= brushMatrixRadius; q+=1) {
+        const targetX: i32 = x + q;
+        const col: i32 = q + brushMatrixRadius;
+
+        if (!(targetX <= 0 || targetX >= width - 1)) {
+          const brushValue: i32 = brushMatrix[row * brushWidth + col];
+          const targetIndex: i32 = targetY * width + targetX;
+          force[targetIndex] += brushValue;
+          force[targetIndex] = applyCap(force[targetIndex]);
+        }
+      }
+    }
   }
 }
