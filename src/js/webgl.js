@@ -89,23 +89,25 @@ const runProgram = (result) => {
 
 
   // Note: those numbers should be corresponding to consts in .walt codefile
-  const VALUES_PER_COLOR = 4
-  const VALUES_PER_VERTEX = 3
+  const MAX_TRIANGLES = 1000
+  const OFFSET_FUNC_RETURN = 0
+  const SIZE_FUNC_RETURN = exports.init(MAX_TRIANGLES)
+  const wasm_funcReturnValues = new Int32Array(heap, OFFSET_FUNC_RETURN, SIZE_FUNC_RETURN)
+
+  const VALUES_PER_COLOR = wasm_funcReturnValues[0]
+  const VALUES_PER_VERTEX = wasm_funcReturnValues[1]
   const BYTES_PER_COLOR = VALUES_PER_COLOR * 4
   const BYTES_PER_VERTEX = VALUES_PER_VERTEX * 4
-  const SIZE_FUNC_RETURN = 100
-  const SIZE_RENDER_COLOR_BUFFER = 1000 * BYTES_PER_COLOR
-  const SIZE_RENDER_VERTEX_BUFFER = 1000 * BYTES_PER_VERTEX
-  const SIZE_RENDER_INDEX_BUFFER = SIZE_RENDER_VERTEX_BUFFER / 3
 
-  const OFFSET_FUNC_RETURN = 0
-  const OFFSET_RENDER_COLOR_BUFFER = OFFSET_FUNC_RETURN + SIZE_FUNC_RETURN
-  const OFFSET_RENDER_VERTEX_BUFFER = OFFSET_RENDER_COLOR_BUFFER + SIZE_RENDER_COLOR_BUFFER
-  const OFFSET_RENDER_INDEX_BUFFER = OFFSET_RENDER_VERTEX_BUFFER + SIZE_RENDER_VERTEX_BUFFER
-  const OFFSET_SHARED_MEMORY_END = OFFSET_RENDER_INDEX_BUFFER + SIZE_RENDER_INDEX_BUFFER
-  log(`offsets: COLOR = ${OFFSET_RENDER_COLOR_BUFFER}, VERTEX = ${OFFSET_RENDER_VERTEX_BUFFER}, INDEX = ${OFFSET_RENDER_INDEX_BUFFER}, _END = ${OFFSET_SHARED_MEMORY_END}`)
+  const SIZE_RENDER_COLOR_BUFFER = wasm_funcReturnValues[2]
+  const SIZE_RENDER_VERTEX_BUFFER = wasm_funcReturnValues[3]
+  const SIZE_RENDER_INDEX_BUFFER = wasm_funcReturnValues[3]
 
-  const wasm_funcReturnValues = new Int32Array(heap, OFFSET_FUNC_RETURN, SIZE_FUNC_RETURN)
+  const OFFSET_RENDER_COLOR_BUFFER = wasm_funcReturnValues[5]
+  const OFFSET_RENDER_VERTEX_BUFFER = wasm_funcReturnValues[6]
+  const OFFSET_RENDER_INDEX_BUFFER = wasm_funcReturnValues[7]
+  const OFFSET_SHARED_MEMORY_END = wasm_funcReturnValues[8]
+
   const wasm_colorBuffer = new Float32Array(heap, OFFSET_RENDER_COLOR_BUFFER, SIZE_RENDER_COLOR_BUFFER)
   const wasm_vertexBuffer = new Float32Array(heap, OFFSET_RENDER_VERTEX_BUFFER, SIZE_RENDER_VERTEX_BUFFER)
   const wasm_indexBuffer = new Int32Array(heap, OFFSET_RENDER_INDEX_BUFFER, SIZE_RENDER_INDEX_BUFFER)
@@ -116,8 +118,6 @@ const runProgram = (result) => {
   const render = (timestamp) => {
     if (firstRenderTimestamp == null) {
       firstRenderTimestamp = timestamp
-
-    // console.log(wasm _colorBuffer.subarray(0, vertexCount*BYTES_PER_COLOR))
     }
 
     exports.render(firstRenderTimestamp - timestamp)
