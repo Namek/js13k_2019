@@ -1,11 +1,22 @@
 document.addEventListener("DOMContentLoaded", (event) => {
-  fetch('triangles.wasm?' + new Date().toTimeString())
-    .then(response => response.arrayBuffer())
-    .then(loadProgram)
-    .then(runProgram)
-})
+const
+  log = console.log
+, canvas = document.getElementById("c")
 
-const log = console.log
+, gl_COLOR_BUFFER_BIT = 16384
+, gl_DEPTH_BUFFER_BIT = 256
+, gl_LEQUAL = 515
+, gl_TRIANGLES = 4
+, gl_STATIC_DRAW = 35044
+, gl_ELEMENT_ARRAY_BUFFER = 34963
+, gl_ARRAY_BUFFER = 34962
+, gl_COMPILE_STATUS = 35713
+, gl_FLOAT = 5126
+, gl_DEPTH_TEST = 2929
+, gl_LINK_STATUS = 35714
+, gl_VERTEX_SHADER = 35633
+, gl_FRAGMENT_SHADER = 35632
+, gl_UNSIGNED_INT = 5125
       
 const loadProgram = (wasmProgram) => {
   const getCanvasWidth = () => canvas.width
@@ -23,13 +34,10 @@ const loadProgram = (wasmProgram) => {
 }
   
 const runProgram = (result) => {
-  /*============== Creating a canvas ====================*/
-  const canvas = document.getElementById("canvas")
-  const gl = canvas.getContext('webgl')
-  var ext = gl.getExtension('OES_element_index_uint')
+  /*============ Creating WebGL context ==================*/
+  const gl = canvas.getContext('webgl2')
 
-
-  /*========== Preparing WebAssembly memory =============*/
+  /*========== Preparing WebAssembly memory ==============*/
   const exports = result.instance.exports
   const memory = exports.memory
   const { width, height } = canvas
@@ -49,22 +57,20 @@ const runProgram = (result) => {
   /*================ Shaders ====================*/
 
   // Vertex shader source code
-  var vertCode =
-  'attribute vec3 position;'+
+  const vertCode =
+  'attribute vec3 pos;'+
   'attribute vec4 color;'+
-  'uniform mat4 projMatrix;'+
-  'uniform mat4 viewMatrix;'+
+  'uniform mat4 projMat;'+
+  'uniform mat4 viewMat;'+
   'varying vec4 vColor;'+
   'void main(void) {' +
-    'gl_Position = projMatrix * viewMatrix * vec4(position, 1.0);' +
-    // 'gl_Position = viewMatrix * vec4(position, 1.0);' +
-    // 'gl_Position = vec4(position, 1.0);' +
+    'gl_Position = projMat * viewMat * vec4(pos, 1.0);' +
     'vColor = color;'+
   '}'
 
   // Create a vertex shader object
   
-  var fragCode =
+  const fragCode =
     'precision mediump float;'+
     'varying vec4 vColor;'+
     'void main(void) {'+
@@ -72,21 +78,21 @@ const runProgram = (result) => {
     '}'
 
 
-  var shaderProgram = linkShaders(gl, vertCode, fragCode)
+  const shaderProgram = linkShaders(gl, vertCode, fragCode)
   gl.useProgram(shaderProgram)
 
   /*======= Associating shaders to buffer objects =======*/
 
-  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, Index_Buffer)
+  gl.bindBuffer(gl_ELEMENT_ARRAY_BUFFER, Index_Buffer)
   
-  gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer)
-  var coord = gl.getAttribLocation(shaderProgram, "position")
-  gl.vertexAttribPointer(coord, 3, gl.FLOAT, false, 0, 0) 
+  gl.bindBuffer(gl_ARRAY_BUFFER, vertex_buffer)
+  const coord = gl.getAttribLocation(shaderProgram, "pos")
+  gl.vertexAttribPointer(coord, 3, gl_FLOAT, false, 0, 0) 
   gl.enableVertexAttribArray(coord)
 
-  gl.bindBuffer(gl.ARRAY_BUFFER, color_buffer)
-  let color = gl.getAttribLocation(shaderProgram, "color")
-  gl.vertexAttribPointer(color, 4, gl.FLOAT, false,0,0) 
+  gl.bindBuffer(gl_ARRAY_BUFFER, color_buffer)
+  const color = gl.getAttribLocation(shaderProgram, "color")
+  gl.vertexAttribPointer(color, 4, gl_FLOAT, false,0,0) 
   gl.enableVertexAttribArray(color)
 
   /*========= Drawing the game ===========*/
@@ -121,13 +127,10 @@ const runProgram = (result) => {
   const wasm_projMatrix = new Float32Array(heap, OFFSET_PROJECTION_MATRIX, SIZE_MATRIX4)
   const wasm_viewMatrix = new Float32Array(heap, OFFSET_VIEW_MATRIX, SIZE_MATRIX4)
 
-  
+  const uProjMatrix = gl.getUniformLocation(shaderProgram, 'projMat')
+  const uViewMatrix = gl.getUniformLocation(shaderProgram, 'viewMat')
+
   let firstRenderTimestamp = null
-
-  // var uTranslation = gl.getUniformLocation(shaderProgram, 'translation')
-  let uProjMatrix = gl.getUniformLocation(shaderProgram, 'projMatrix')
-  let uViewMatrix = gl.getUniformLocation(shaderProgram, 'viewMatrix')
-
 
   const render = (timestamp) => {
     if (firstRenderTimestamp == null) {
@@ -141,47 +144,44 @@ const runProgram = (result) => {
 
     // log(vertexCount, indexCount)
 
-    gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer)
-    gl.bufferData(gl.ARRAY_BUFFER, wasm_vertexBuffer.subarray(0, vertexCount*VALUES_PER_VERTEX), gl.STATIC_DRAW)
-    gl.bindBuffer(gl.ARRAY_BUFFER, color_buffer)
-    gl.bufferData(gl.ARRAY_BUFFER, wasm_colorBuffer.subarray(0, vertexCount*VALUES_PER_COLOR), gl.STATIC_DRAW)
-    gl.bindBuffer(gl.ARRAY_BUFFER, null)
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, Index_Buffer)
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, wasm_indexBuffer.subarray(0, indexCount), gl.STATIC_DRAW)
+    gl.bindBuffer(gl_ARRAY_BUFFER, vertex_buffer)
+    gl.bufferData(gl_ARRAY_BUFFER, wasm_vertexBuffer.subarray(0, vertexCount*VALUES_PER_VERTEX), gl_STATIC_DRAW)
+    gl.bindBuffer(gl_ARRAY_BUFFER, color_buffer)
+    gl.bufferData(gl_ARRAY_BUFFER, wasm_colorBuffer.subarray(0, vertexCount*VALUES_PER_COLOR), gl_STATIC_DRAW)
+    gl.bindBuffer(gl_ARRAY_BUFFER, null)
+    gl.bindBuffer(gl_ELEMENT_ARRAY_BUFFER, Index_Buffer)
+    gl.bufferData(gl_ELEMENT_ARRAY_BUFFER, wasm_indexBuffer.subarray(0, indexCount), gl_STATIC_DRAW)
 
-    // var Tx = 0.5, Ty = 0.5, Tz = 0.0
-    // gl.uniform4f(translation, Tx, Ty, Tz, 0.0)
     gl.uniformMatrix4fv(uProjMatrix, false, wasm_projMatrix)
     gl.uniformMatrix4fv(uViewMatrix, false, wasm_viewMatrix)
 
     gl.clearColor(0.5, 0.5, 0.5, 1.0)
     gl.clearDepth(1.0)
-    gl.enable(gl.DEPTH_TEST)
-    gl.depthFunc(gl.LEQUAL)
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+    gl.enable(gl_DEPTH_TEST)
+    gl.depthFunc(gl_LEQUAL)
+    gl.clear(gl_COLOR_BUFFER_BIT | gl_DEPTH_BUFFER_BIT)
 
     // Set the view port
-    gl.viewport(0,0,canvas.width,canvas.height)
+    gl.viewport(0, 0, canvas.width, canvas.height)
 
     // Draw the triangle
-    gl.drawElements(gl.TRIANGLES, indexCount, gl.UNSIGNED_INT,0)
+    gl.drawElements(gl_TRIANGLES, indexCount, gl_UNSIGNED_INT,0)
 
     window.requestAnimationFrame(render)
   }
 
   window.requestAnimationFrame(render)
 }
-
 const linkShaders = (gl, vertCode, fragCode) => {
-  let vertShader = compileShader(gl, gl.VERTEX_SHADER, vertCode)
-  let fragShader = compileShader(gl, gl.FRAGMENT_SHADER, fragCode)
+  const vertShader = compileShader(gl, gl_VERTEX_SHADER, vertCode)
+  const fragShader = compileShader(gl, gl_FRAGMENT_SHADER, fragCode)
 
-  var program = gl.createProgram()
+  const program = gl.createProgram()
   gl.attachShader(program, vertShader)
   gl.attachShader(program, fragShader)
   gl.linkProgram(program)
 
-  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+  if (!gl.getProgramParameter(program, gl_LINK_STATUS)) {
     throw new Error(gl.getProgramInfoLog(program))
   }
 
@@ -189,11 +189,11 @@ const linkShaders = (gl, vertCode, fragCode) => {
 }
 
 const compileShader = (gl, type, code) => {
-  var shader = gl.createShader(type)
+  const shader = gl.createShader(type)
   gl.shaderSource(shader, code)
   gl.compileShader(shader)
 
-  const compiled = gl.getShaderParameter(shader, gl.COMPILE_STATUS)
+  const compiled = gl.getShaderParameter(shader, gl_COMPILE_STATUS)
 
   if (!compiled) {
     throw new Error(gl.getShaderInfoLog(shader))
@@ -201,3 +201,10 @@ const compileShader = (gl, type, code) => {
 
   return shader
 }
+
+
+fetch('triangles.wasm?' + new Date().toTimeString())
+  .then(response => response.arrayBuffer())
+  .then(loadProgram)
+  .then(runProgram)
+})

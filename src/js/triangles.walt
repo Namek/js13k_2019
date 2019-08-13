@@ -213,18 +213,13 @@ export function render(): void {
   vertexCount = 0;
   indexCount = 0;
 
-  
+  const cameraZ: f32 = -2.0;
   set16f(OFFSET_VIEW_MATRIX,
     1.0, 0.0, 0.0, 0.0,
     0.0, 1.0, 0.0, 0.0,
     0.0, 0.0, 1.0, 0.0,
-    0.0, 0.0, -2.0, 1.0);
+    0.0, 0.0, cameraZ, 1.0);
 
-  set16f(OFFSET_PROJECTION_MATRIX,
-    1.0, 0.0, 0.0, 0.0,
-    0.0, 1.0, 0.0, 0.0,
-    0.0, 0.0, 1.0, 0.0,
-    0.0, 0.0, 0.0, 1.0);
   const aspectRatio: f32 = getCanvasWidth()/getCanvasHeight();
   const fieldOfViewInDegrees: f32 = 70.0 * PI_180;
   setProjectionMatrix(OFFSET_PROJECTION_MATRIX, fieldOfViewInDegrees, aspectRatio, 1.0, 40.0);
