@@ -1,0 +1,140 @@
+import {
+    log: I2V
+} from 'env';
+
+type I2V = (i32) => void;
+type F2F = (f32) => f32;
+type F2I = (f32) => i32;
+
+export const memory: Memory<{initial: 5}>; // 5 * 65536
+const INT_SIZE: i32 = 4;
+const VALUES_PER_VERTEX: i32 = 3;
+const VALUES_PER_COLOR: i32 = 4;
+
+// shared memory
+const OFFSET_FUNC_RETURN: i32 = 0;
+const OFFSET_RENDER_COLOR_BUFFER: i32 = 100; // colors for 1000 triangles
+const OFFSET_RENDER_VERTEX_BUFFER: i32 = 16100;
+const OFFSET_RENDER_INDEX_BUFFER: i32 = 28100;
+
+// internal memory
+const OFFSET_CURRENT_COLOR: i32 = 32100;
+
+
+
+function pregenerateTextures(): void {
+
+}
+
+
+function simulate(): void {
+
+
+}
+
+
+let vertexCount: i32 = 0;
+let indexCount: i32 = 0;
+
+
+function triangle(
+    v1x: f32, v1y: f32, v1z: f32, v2x: f32, v2y: f32, v2z: f32, v3x: f32, v3y: f32, v3z: f32
+): void {
+    const vertices: f32[] = OFFSET_RENDER_VERTEX_BUFFER;
+    const colors: f32[] = OFFSET_RENDER_COLOR_BUFFER;
+    const indices: i32[] = OFFSET_RENDER_INDEX_BUFFER;
+    const currentColor: f32[] = OFFSET_CURRENT_COLOR;
+
+    let i: i32 = vertexCount * VALUES_PER_VERTEX;
+    vertices[i] = v1x;
+    vertices[i+1] = v1y;
+    vertices[i+2] = v1z;
+    vertices[i+3] = v2x;
+    vertices[i+4] = v2y;
+    vertices[i+5] = v2z;
+    vertices[i+6] = v3x;
+    vertices[i+7] = v3y;
+    vertices[i+8] = v3z;
+
+    i = vertexCount * VALUES_PER_COLOR;
+    let j: i32 = 0;
+    for (j = 0; j < 12; j+=1) {
+        colors[i + j] = currentColor[j];
+    }
+
+    indices[indexCount] = 0;
+    indices[indexCount+1] = 1;
+    indices[indexCount+2] = 2;
+
+    vertexCount += 3;
+    indexCount += 3;
+}
+
+// set 3 colors for 3 triangle vertices
+function setColors(alpha: f32, r1: f32, g1: f32, b1: f32, r2: f32, g2: f32, b2: f32, r3: f32, g3: f32, b3: f32): void {
+    const color: f32[] = OFFSET_CURRENT_COLOR;
+
+    color[0] = r1;
+    color[1] = g1;
+    color[2] = b1;
+    color[3] = alpha;
+    color[4] = r2;
+    color[5] = g2;
+    color[6] = b2;
+    color[7] = alpha;
+    color[8] = r3;
+    color[9] = g3;
+    color[10] = b3;
+    color[11] = alpha;
+}
+
+// set single color for 3 triangle vertices
+function setColor(alpha: f32, r: f32, g: f32, b: f32): void {
+    const color: f32[] = OFFSET_CURRENT_COLOR;
+
+    color[0] = r;
+    color[1] = g;
+    color[2] = b;
+    color[3] = alpha;
+    color[4] = r;
+    color[5] = g;
+    color[6] = b;
+    color[7] = alpha;
+    color[8] = r;
+    color[9] = g;
+    color[10] = b;
+    color[11] = alpha;
+}
+
+// function rgba(red: i32, green: i32, blue: i32, alpha: i32): i32 {
+//     return (alpha << 24) | (red << 16) | (green << 8) | blue;
+// }
+// function rgb(red: i16, green: i16, blue: i16): i32 {
+//     return rgba(red, green, blue, 255);
+// }
+
+
+// returns numbers:
+//  - number of vertices (same as number of colors)
+//  - number of indices
+export function render(): void {
+    const ret: i32[] = OFFSET_FUNC_RETURN;
+    vertexCount = 0;
+    indexCount = 0;
+
+       
+    setColors(1.0,
+        1.0, 0.0, 0.0,
+        0.0, 1.0, 0.0,
+        0.0, 0.0, 1.0);
+
+    // setColor(1.0, 1.0, 0.0, 0.0);
+
+    triangle(
+        -0.5, 0.5, 0.0,
+        -0.5, -0.5, 0.0,
+        0.5, -0.5, 0.0);
+     
+    ret[0] = vertexCount;
+    ret[1] = indexCount;
+}
