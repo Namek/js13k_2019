@@ -47,7 +47,7 @@ const runProgram = (result) => {
   const heap = memory.buffer
 
     
-  /*======== Defining and storing the geometry ===========*/
+  /*============== Defining the geometry ==============*/
 
   const vertex_buffer = gl.createBuffer()
   const Index_Buffer = gl.createBuffer()
@@ -104,15 +104,12 @@ const runProgram = (result) => {
   const SIZE_FUNC_RETURN = exports.init(MAX_TRIANGLES)
   const wasm_funcReturnValues = new Int32Array(heap, OFFSET_FUNC_RETURN, SIZE_FUNC_RETURN)
 
-  const VALUES_PER_COLOR = wasm_funcReturnValues[0]//4
   const VALUES_PER_VERTEX = wasm_funcReturnValues[1]//3
-  const BYTES_PER_COLOR = VALUES_PER_COLOR * 4
-  const BYTES_PER_VERTEX = VALUES_PER_VERTEX * 4
-
+  const VALUES_PER_COLOR = wasm_funcReturnValues[0]//4
   const SIZE_RENDER_COLOR_BUFFER = wasm_funcReturnValues[2]
   const SIZE_RENDER_VERTEX_BUFFER = wasm_funcReturnValues[3]
-  const SIZE_RENDER_INDEX_BUFFER = wasm_funcReturnValues[3]
-  const SIZE_MATRIX4 = 16
+  const SIZE_RENDER_INDEX_BUFFER = wasm_funcReturnValues[4]
+  const NUM_MATRIX4 = 16
 
   const OFFSET_RENDER_COLOR_BUFFER = wasm_funcReturnValues[5]
   const OFFSET_RENDER_VERTEX_BUFFER = wasm_funcReturnValues[6]
@@ -121,11 +118,11 @@ const runProgram = (result) => {
   const OFFSET_VIEW_MATRIX = wasm_funcReturnValues[9]
   const OFFSET_SHARED_MEMORY_END = wasm_funcReturnValues[10]
 
-  const wasm_colorBuffer = new Float32Array(heap, OFFSET_RENDER_COLOR_BUFFER, SIZE_RENDER_COLOR_BUFFER)
-  const wasm_vertexBuffer = new Float32Array(heap, OFFSET_RENDER_VERTEX_BUFFER, SIZE_RENDER_VERTEX_BUFFER)
-  const wasm_indexBuffer = new Int32Array(heap, OFFSET_RENDER_INDEX_BUFFER, SIZE_RENDER_INDEX_BUFFER)
-  const wasm_projMatrix = new Float32Array(heap, OFFSET_PROJECTION_MATRIX, SIZE_MATRIX4)
-  const wasm_viewMatrix = new Float32Array(heap, OFFSET_VIEW_MATRIX, SIZE_MATRIX4)
+  const wasm_colorBuffer = new Float32Array(heap, OFFSET_RENDER_COLOR_BUFFER, SIZE_RENDER_COLOR_BUFFER/4)
+  const wasm_vertexBuffer = new Float32Array(heap, OFFSET_RENDER_VERTEX_BUFFER, SIZE_RENDER_VERTEX_BUFFER/4)
+  const wasm_indexBuffer = new Int32Array(heap, OFFSET_RENDER_INDEX_BUFFER, SIZE_RENDER_INDEX_BUFFER/4)
+  const wasm_projMatrix = new Float32Array(heap, OFFSET_PROJECTION_MATRIX, NUM_MATRIX4)
+  const wasm_viewMatrix = new Float32Array(heap, OFFSET_VIEW_MATRIX, NUM_MATRIX4)
 
   const uProjMatrix = gl.getUniformLocation(shaderProgram, 'projMat')
   const uViewMatrix = gl.getUniformLocation(shaderProgram, 'viewMat')
