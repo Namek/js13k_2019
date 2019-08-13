@@ -15,7 +15,8 @@ const loadProgram = (wasmProgram) => {
     getCanvasHeight,
     log,
     Math_exp: Math.exp,
-    Math_floor: Math.floor
+    Math_floor: Math.floor,
+    Math_tan: Math.tan
   }
 
   return WebAssembly.instantiate(wasmProgram, { env })
@@ -49,12 +50,15 @@ const runProgram = (result) => {
 
   // Vertex shader source code
   var vertCode =
-  'uniform vec4 translation;'+
-  'attribute vec4 coordinates;'+
+  'attribute vec3 position;'+
   'attribute vec4 color;'+
+  'uniform mat4 projMatrix;'+
+  'uniform mat4 viewMatrix;'+
   'varying vec4 vColor;'+
   'void main(void) {' +
-    'gl_Position = coordinates + translation;' +
+    'gl_Position = projMatrix * viewMatrix * vec4(position, 1.0);' +
+    // 'gl_Position = viewMatrix * vec4(position, 1.0);' +
+    // 'gl_Position = vec4(position, 1.0);' +
     'vColor = color;'+
   '}'
 
@@ -76,7 +80,7 @@ const runProgram = (result) => {
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, Index_Buffer)
   
   gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer)
-  var coord = gl.getAttribLocation(shaderProgram, "coordinates")
+  var coord = gl.getAttribLocation(shaderProgram, "position")
   gl.vertexAttribPointer(coord, 3, gl.FLOAT, false, 0, 0) 
   gl.enableVertexAttribArray(coord)
 
@@ -94,26 +98,36 @@ const runProgram = (result) => {
   const SIZE_FUNC_RETURN = exports.init(MAX_TRIANGLES)
   const wasm_funcReturnValues = new Int32Array(heap, OFFSET_FUNC_RETURN, SIZE_FUNC_RETURN)
 
-  const VALUES_PER_COLOR = wasm_funcReturnValues[0]
-  const VALUES_PER_VERTEX = wasm_funcReturnValues[1]
+  const VALUES_PER_COLOR = wasm_funcReturnValues[0]//4
+  const VALUES_PER_VERTEX = wasm_funcReturnValues[1]//3
   const BYTES_PER_COLOR = VALUES_PER_COLOR * 4
   const BYTES_PER_VERTEX = VALUES_PER_VERTEX * 4
 
   const SIZE_RENDER_COLOR_BUFFER = wasm_funcReturnValues[2]
   const SIZE_RENDER_VERTEX_BUFFER = wasm_funcReturnValues[3]
   const SIZE_RENDER_INDEX_BUFFER = wasm_funcReturnValues[3]
+  const SIZE_MATRIX4 = 16
 
   const OFFSET_RENDER_COLOR_BUFFER = wasm_funcReturnValues[5]
   const OFFSET_RENDER_VERTEX_BUFFER = wasm_funcReturnValues[6]
   const OFFSET_RENDER_INDEX_BUFFER = wasm_funcReturnValues[7]
-  const OFFSET_SHARED_MEMORY_END = wasm_funcReturnValues[8]
+  const OFFSET_PROJECTION_MATRIX = wasm_funcReturnValues[8]
+  const OFFSET_VIEW_MATRIX = wasm_funcReturnValues[9]
+  const OFFSET_SHARED_MEMORY_END = wasm_funcReturnValues[10]
 
   const wasm_colorBuffer = new Float32Array(heap, OFFSET_RENDER_COLOR_BUFFER, SIZE_RENDER_COLOR_BUFFER)
   const wasm_vertexBuffer = new Float32Array(heap, OFFSET_RENDER_VERTEX_BUFFER, SIZE_RENDER_VERTEX_BUFFER)
   const wasm_indexBuffer = new Int32Array(heap, OFFSET_RENDER_INDEX_BUFFER, SIZE_RENDER_INDEX_BUFFER)
+  const wasm_projMatrix = new Float32Array(heap, OFFSET_PROJECTION_MATRIX, SIZE_MATRIX4)
+  const wasm_viewMatrix = new Float32Array(heap, OFFSET_VIEW_MATRIX, SIZE_MATRIX4)
 
   
   let firstRenderTimestamp = null
+
+  // var uTranslation = gl.getUniformLocation(shaderProgram, 'translation')
+  let uProjMatrix = gl.getUniformLocation(shaderProgram, 'projMatrix')
+  let uViewMatrix = gl.getUniformLocation(shaderProgram, 'viewMatrix')
+
 
   const render = (timestamp) => {
     if (firstRenderTimestamp == null) {
@@ -135,9 +149,10 @@ const runProgram = (result) => {
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, Index_Buffer)
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, wasm_indexBuffer.subarray(0, indexCount), gl.STATIC_DRAW)
 
-    var Tx = 0.5, Ty = 0.5, Tz = 0.0
-    var translation = gl.getUniformLocation(shaderProgram, 'translation')
-    gl.uniform4f(translation, Tx, Ty, Tz, 0.0)
+    // var Tx = 0.5, Ty = 0.5, Tz = 0.0
+    // gl.uniform4f(translation, Tx, Ty, Tz, 0.0)
+    gl.uniformMatrix4fv(uProjMatrix, false, wasm_projMatrix)
+    gl.uniformMatrix4fv(uViewMatrix, false, wasm_viewMatrix)
 
     gl.clearColor(0.5, 0.5, 0.5, 1.0)
     gl.clearDepth(1.0)

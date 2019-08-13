@@ -1,7 +1,11 @@
 import {
-    log: I2V
+  getCanvasWidth: V2F,
+  getCanvasHeight: V2F,
+  log: I2V,
+  Math_tan: F2F
 } from 'env';
 
+type V2F = () => f32;
 type I2V = (i32) => void;
 type F2F = (f32) => f32;
 type F2I = (f32) => i32;
@@ -18,15 +22,23 @@ const SIZE_FUNC_RETURN: i32 = 100;
 let SIZE_RENDER_COLOR_BUFFER: i32 = 0;
 let SIZE_RENDER_VERTEX_BUFFER: i32 = 0;
 let SIZE_RENDER_INDEX_BUFFER: i32 = 0;
+const SIZE_PROJECTION_MATRIX: i32 = 64;//16 * FLOAT_SIZE
+const SIZE_VIEW_MATRIX: i32 = 64;//16 * FLOAT_SIZE
 
 let OFFSET_FUNC_RETURN: i32 = 0;
 let OFFSET_RENDER_COLOR_BUFFER: i32 = 0;
 let OFFSET_RENDER_VERTEX_BUFFER: i32 = 0;
 let OFFSET_RENDER_INDEX_BUFFER: i32 = 0;
+let OFFSET_PROJECTION_MATRIX: i32 = 0;
+let OFFSET_VIEW_MATRIX: i32 = 0;
 
 // internal memory
 let OFFSET_CURRENT_COLOR: i32 = 0;
 
+
+const O: f32 = 0;
+const PI: f32 = 3.141592653589793;
+const PI_180: f32 = 0.017453292519943295;// PI/180.0
 
 // returns memory layout
 export function init(maxTriangles: i32): i32 {
@@ -44,8 +56,10 @@ export function init(maxTriangles: i32): i32 {
   OFFSET_RENDER_COLOR_BUFFER = OFFSET_FUNC_RETURN + SIZE_FUNC_RETURN;
   OFFSET_RENDER_VERTEX_BUFFER = OFFSET_RENDER_COLOR_BUFFER + SIZE_RENDER_COLOR_BUFFER;
   OFFSET_RENDER_INDEX_BUFFER = OFFSET_RENDER_VERTEX_BUFFER + SIZE_RENDER_VERTEX_BUFFER;
+  OFFSET_PROJECTION_MATRIX = OFFSET_RENDER_INDEX_BUFFER + SIZE_RENDER_INDEX_BUFFER;
+  OFFSET_VIEW_MATRIX = OFFSET_PROJECTION_MATRIX + SIZE_PROJECTION_MATRIX;
   
-  const OFFSET_SHARED_MEMORY_END: i32 = OFFSET_RENDER_INDEX_BUFFER + SIZE_RENDER_INDEX_BUFFER;
+  const OFFSET_SHARED_MEMORY_END: i32 = OFFSET_VIEW_MATRIX + SIZE_VIEW_MATRIX;
 
   // internal memory
   OFFSET_CURRENT_COLOR = OFFSET_SHARED_MEMORY_END;
@@ -58,7 +72,9 @@ export function init(maxTriangles: i32): i32 {
   ret[5] = OFFSET_RENDER_COLOR_BUFFER;
   ret[6] = OFFSET_RENDER_VERTEX_BUFFER;
   ret[7] = OFFSET_RENDER_INDEX_BUFFER;
-  ret[8] = OFFSET_SHARED_MEMORY_END;
+  ret[8] = OFFSET_PROJECTION_MATRIX;
+  ret[9] = OFFSET_VIEW_MATRIX;
+  ret[10] = OFFSET_SHARED_MEMORY_END;
 
   return SIZE_FUNC_RETURN;
 }
@@ -82,101 +98,153 @@ let indexCount: i32 = 0;
 function triangle(
     v1x: f32, v1y: f32, v1z: f32, v2x: f32, v2y: f32, v2z: f32, v3x: f32, v3y: f32, v3z: f32
 ): void {
-    const vertices: f32[] = OFFSET_RENDER_VERTEX_BUFFER;
-    const colors: f32[] = OFFSET_RENDER_COLOR_BUFFER;
-    const indices: i32[] = OFFSET_RENDER_INDEX_BUFFER;
-    const currentColor: f32[] = OFFSET_CURRENT_COLOR;
+  const vertices: f32[] = OFFSET_RENDER_VERTEX_BUFFER;
+  const colors: f32[] = OFFSET_RENDER_COLOR_BUFFER;
+  const indices: i32[] = OFFSET_RENDER_INDEX_BUFFER;
+  const currentColor: f32[] = OFFSET_CURRENT_COLOR;
 
-    let i: i32 = vertexCount * VALUES_PER_VERTEX;
-    vertices[i] = v1x;
-    vertices[i+1] = v1y;
-    vertices[i+2] = v1z;
-    vertices[i+3] = v2x;
-    vertices[i+4] = v2y;
-    vertices[i+5] = v2z;
-    vertices[i+6] = v3x;
-    vertices[i+7] = v3y;
-    vertices[i+8] = v3z;
+  let i: i32 = vertexCount * VALUES_PER_VERTEX;
+  vertices[i] = v1x;
+  vertices[i+1] = v1y;
+  vertices[i+2] = v1z;
+  vertices[i+3] = v2x;
+  vertices[i+4] = v2y;
+  vertices[i+5] = v2z;
+  vertices[i+6] = v3x;
+  vertices[i+7] = v3y;
+  vertices[i+8] = v3z;
 
-    i = vertexCount * VALUES_PER_COLOR;
-    let j: i32 = 0;
-    for (j = 0; j < 12; j+=1) {
-        colors[i + j] = currentColor[j];
-    }
+  i = vertexCount * VALUES_PER_COLOR;
+  let j: i32 = 0;
+  for (j = 0; j < 12; j+=1) {
+    colors[i + j] = currentColor[j];
+  }
 
-    indices[indexCount] = 0;
-    indices[indexCount+1] = 1;
-    indices[indexCount+2] = 2;
+  indices[indexCount] = indexCount;
+  indices[indexCount+1] = indexCount+1;
+  indices[indexCount+2] = indexCount+2;
 
-    vertexCount += 3;
-    indexCount += 3;
+  vertexCount += 3;
+  indexCount += 3;
 }
 
 // set 3 colors for 3 triangle vertices
 function setColors(alpha: f32, r1: f32, g1: f32, b1: f32, r2: f32, g2: f32, b2: f32, r3: f32, g3: f32, b3: f32): void {
-    const color: f32[] = OFFSET_CURRENT_COLOR;
+  const color: f32[] = OFFSET_CURRENT_COLOR;
 
-    color[0] = r1;
-    color[1] = g1;
-    color[2] = b1;
-    color[3] = alpha;
-    color[4] = r2;
-    color[5] = g2;
-    color[6] = b2;
-    color[7] = alpha;
-    color[8] = r3;
-    color[9] = g3;
-    color[10] = b3;
-    color[11] = alpha;
+  color[0] = r1;
+  color[1] = g1;
+  color[2] = b1;
+  color[3] = alpha;
+  color[4] = r2;
+  color[5] = g2;
+  color[6] = b2;
+  color[7] = alpha;
+  color[8] = r3;
+  color[9] = g3;
+  color[10] = b3;
+  color[11] = alpha;
 }
 
 // set single color for 3 triangle vertices
 function setColor(alpha: f32, r: f32, g: f32, b: f32): void {
-    const color: f32[] = OFFSET_CURRENT_COLOR;
+  const color: f32[] = OFFSET_CURRENT_COLOR;
 
-    color[0] = r;
-    color[1] = g;
-    color[2] = b;
-    color[3] = alpha;
-    color[4] = r;
-    color[5] = g;
-    color[6] = b;
-    color[7] = alpha;
-    color[8] = r;
-    color[9] = g;
-    color[10] = b;
-    color[11] = alpha;
+  color[0] = r;
+  color[1] = g;
+  color[2] = b;
+  color[3] = alpha;
+  color[4] = r;
+  color[5] = g;
+  color[6] = b;
+  color[7] = alpha;
+  color[8] = r;
+  color[9] = g;
+  color[10] = b;
+  color[11] = alpha;
 }
 
-// function rgba(red: i32, green: i32, blue: i32, alpha: i32): i32 {
-//     return (alpha << 24) | (red << 16) | (green << 8) | blue;
-// }
-// function rgb(red: i16, green: i16, blue: i16): i32 {
-//     return rgba(red, green, blue, 255);
-// }
+
+
+function set16f(addr: i32,
+    f0: f32, f1: f32, f2: f32, f3: f32,
+    f4: f32, f5: f32, f6: f32, f7: f32,
+    f8: f32, f9: f32, f10:f32, f11:f32,
+    f12:f32, f13:f32, f14:f32, f15:f32
+): void {
+  const a: f32[] = addr;
+  a[0] = f0; a[1] = f1; a[2] = f2; a[3] = f3;
+  a[4] = f4; a[5] = f5; a[6] = f6; a[7] = f7;
+  a[8] = f8; a[9] = f9; a[10]= f10;a[11]= f11;
+  a[12]= f12;a[13]= f13;a[14]= f14;a[15]= f15;
+}
+
+function setProjectionMatrix(addr: i32, 
+  fieldOfViewInRadians: f32, aspect: f32, near: f32, far: f32): void {
+
+
+  //angle: f32, a: f32, zMin: f32, zMax: f32): void {
+  // const ang: f32 = Math_tan((angle * 0.5) * PI_180);//angle*.5
+  // set16f(addr,
+  //   0.5/ang, 0.0 , 0.0, 0.0,
+  //   0.0, 0.5*a/ang, 0.0, 0.0,
+  //   0.0, 0.0, -(zMax+zMin)/(zMax-zMin), -1.0,
+  //   0.0, 0.0, (-2*zMax*zMin)/(zMax-zMin), 0.0);
+
+  //webglfundamentals.org
+  const f: f32 = Math_tan(PI * 0.5 - 0.5 * fieldOfViewInRadians);
+  const rangeInv: f32 = 1.0 / (near - far);
+
+  set16f(addr,
+    f / aspect, O, O, O,
+    O, f, O, O,
+    O, O, (near + far) * rangeInv, -1.0,
+    O, O, near * far * rangeInv * 2.0, O
+    );
+}
+
 
 
 // returns numbers:
 //  - number of vertices (same as number of colors)
 //  - number of indices
 export function render(): void {
-    const ret: i32[] = OFFSET_FUNC_RETURN;
-    vertexCount = 0;
-    indexCount = 0;
+  const ret: i32[] = OFFSET_FUNC_RETURN;
+  vertexCount = 0;
+  indexCount = 0;
 
-       
-    setColors(1.0,
-        1.0, 0.0, 0.0,
-        0.0, 1.0, 0.0,
-        0.0, 0.0, 1.0);
+  
+  set16f(OFFSET_VIEW_MATRIX,
+    1.0, 0.0, 0.0, 0.0,
+    0.0, 1.0, 0.0, 0.0,
+    0.0, 0.0, 1.0, 0.0,
+    0.0, 0.0, -2.0, 1.0);
 
-    // setColor(1.0, 1.0, 0.0, 0.0);
+  set16f(OFFSET_PROJECTION_MATRIX,
+    1.0, 0.0, 0.0, 0.0,
+    0.0, 1.0, 0.0, 0.0,
+    0.0, 0.0, 1.0, 0.0,
+    0.0, 0.0, 0.0, 1.0);
+  const aspectRatio: f32 = getCanvasWidth()/getCanvasHeight();
+  const fieldOfViewInDegrees: f32 = 70.0 * PI_180;
+  setProjectionMatrix(OFFSET_PROJECTION_MATRIX, fieldOfViewInDegrees, aspectRatio, 1.0, 40.0);
 
-    triangle(
-        -0.5, 0.5, 0.0,
-        -0.5, -0.5, 0.0,
-        0.5, -0.5, 0.0);
-     
-    ret[0] = vertexCount;
-    ret[1] = indexCount;
+  setColors(1.0,
+      1.0, 0.0, 0.0,
+      0.0, 1.0, 0.0,
+      0.0, 0.0, 1.0);
+  triangle(
+      -0.5, 0.5, 0.0,
+      -0.5, -0.5, 0.0,
+      0.5, -0.5, 0.0);
+      
+  setColor(0.4, 1.0, 0.0, 0.0);
+  triangle(
+    -1.0,-1.0, -0.5,
+     1.0,-1.0,-1.0,
+     1.0, 1.0,-1.0);
+
+    
+  ret[0] = vertexCount;
+  ret[1] = indexCount;
 }
