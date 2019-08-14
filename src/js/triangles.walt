@@ -10,7 +10,7 @@ type I2V = (i32) => void;
 type F2F = (f32) => f32;
 type F2I = (f32) => i32;
 
-export const memory: Memory<{initial: 5}>; // 5 * 65536
+export const memory: Memory<{initial: 16}>; // multiplication of 65536 bytes
 const INT_SIZE: i32 = 4;
 const VALUES_PER_VERTEX: i32 = 3;
 const VALUES_PER_COLOR: i32 = 4;
@@ -40,6 +40,75 @@ const I: f32 = 1.0;
 const O: f32 = 0.0;
 const PI: f32 = 3.141592653589793;
 const PI_180: f32 = 0.017453292519943295;// PI/180.0
+
+
+const ALL_TEXTURES:i32 = 1;
+const TEXTURE_CHECKERBOARD: i32 = 0;
+
+
+export function preinit(): i32 {
+  return SIZE_FUNC_RETURN;
+}
+
+function rgba(r: i32, g: i32, b: i32, a: i32): i32 {
+  return (a << 24) | (b << 16) | (g << 8) | r;
+}
+function rgb(r: i32, g: i32, b: i32): i32 {
+  return rgba(r, g, b, 255);
+}
+
+// call it before init()
+export function generateTextures(): void {
+  const ret: i32[] = OFFSET_FUNC_RETURN;
+  let x: i32 = 0;
+  let y: i32 = 0;
+  let i: i32 = 0;
+  let j: i32 = 0;
+  let p: i32 = 0;
+  
+  let textureStart: i32 = OFFSET_FUNC_RETURN + SIZE_FUNC_RETURN
+    + 1 + 3 * ALL_TEXTURES;//make some space for info about textures
+  let tex: i32[] = textureStart;
+  let textureCount: i32 = 0;
+
+  const w: i32 = 500;
+  const h: i32 = 500;
+  const gap: i32 = 50;
+  let color: i32 = 0;
+
+  // checkerboard: TEXTURE_CHECKERBOARD
+  p = 0;
+  for (y = 0; y < h; y += gap) {
+    for (x = 0; x < w; x += gap) {
+      // fill rectangle
+      for (i = 0; i < gap; i+=1) {
+        for (j = 0; j < gap; j+=1) {
+          p = (y+i)*w + x + j;
+          if (color == 0) {
+            tex[p] = rgb(255, 0, 0);
+          }
+          else {
+            tex[p] = rgb(255, 255, 255);
+          }
+        }  
+      }
+
+      color = (color + 1) % 2;
+    }
+
+    // start row with different color than row above
+    color = (color + 1) % 2;
+  }
+
+  textureCount += 1;
+
+  // return info about all textures
+  ret[0] = textureCount;
+  ret[1] = w;
+  ret[2] = h;
+  ret[3] = textureStart;
+}
+
 
 // returns memory layout
 export function init(maxTriangles: i32): i32 {
@@ -80,10 +149,6 @@ export function init(maxTriangles: i32): i32 {
   return SIZE_FUNC_RETURN;
 }
 
-
-function pregenerateTextures(): void {
-
-}
 
 
 function simulate(): void {

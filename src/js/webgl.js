@@ -2,6 +2,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
 const
   log = console.log
 , canvas = document.getElementById("c")
+, canvas2d = document.getElementById("t")
 
 , gl_COLOR_BUFFER_BIT = 16384
 , gl_DEPTH_BUFFER_BIT = 256
@@ -17,6 +18,9 @@ const
 , gl_VERTEX_SHADER = 35633
 , gl_FRAGMENT_SHADER = 35632
 , gl_UNSIGNED_INT = 5125
+, gl_TEXTURE_2D = 3553
+, gl_RGB = 6407
+, gl_RGBA = 6408
       
 const loadProgram = (wasmProgram) => {
   const getCanvasWidth = () => canvas.width
@@ -36,6 +40,7 @@ const loadProgram = (wasmProgram) => {
 const runProgram = (result) => {
   /*============ Creating WebGL context ==================*/
   const gl = canvas.getContext('webgl2')
+  const ctx = canvas2d.getContext('2d')
 
   /*========== Preparing WebAssembly memory ==============*/
   const exports = result.instance.exports
@@ -95,14 +100,47 @@ const runProgram = (result) => {
   gl.vertexAttribPointer(color, 4, gl_FLOAT, false,0,0) 
   gl.enableVertexAttribArray(color)
 
-  /*========= Drawing the game ===========*/
+
+  /*=========== Initialize data =============*/
 
 
-  // Note: those numbers should be corresponding to consts in .walt codefile
-  const MAX_TRIANGLES = 1000
   const OFFSET_FUNC_RETURN = 0
-  const SIZE_FUNC_RETURN = exports.init(MAX_TRIANGLES)
+  const SIZE_FUNC_RETURN = exports.preinit()
   const wasm_funcReturnValues = new Int32Array(heap, OFFSET_FUNC_RETURN, SIZE_FUNC_RETURN)
+
+  exports.generateTextures()
+  let valIdx = 0
+  const textureCount = wasm_funcReturnValues[valIdx++]
+  
+  const textures = []
+  
+  for (let i = 0; i < textureCount; ++i) {
+    const texW = wasm_funcReturnValues[valIdx++]
+    const texH = wasm_funcReturnValues[valIdx++]
+    const texOffset = wasm_funcReturnValues[valIdx++] //* 4
+    const texSize = 4 * texW * texH
+    const texBytes = new Uint8Array(heap, texOffset, texSize)
+
+    canvas2d.width = texW
+    canvas2d.height = texH
+    const imgData = ctx.createImageData(texW, texH)
+    imgData.data.set(texBytes)
+    ctx.putImageData(imgData, 0, 0)
+
+    const texture = gl.createTexture()
+    gl.bindTexture(gl_TEXTURE_2D, texture)
+    
+    // gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1); // use bottom-down storage
+    
+    gl.texImage2D( gl_TEXTURE_2D, 0, gl_RGBA,
+      texW, texH, 0, gl_RGBA, gl.UNSIGNED_BYTE, texBytes);
+    gl.generateMipmap(gl_TEXTURE_2D);
+    textures.push(texture)
+    
+  }
+
+  const MAX_TRIANGLES = 1000
+  exports.init(MAX_TRIANGLES)
 
   const VALUES_PER_VERTEX = wasm_funcReturnValues[1]//3
   const VALUES_PER_COLOR = wasm_funcReturnValues[0]//4
@@ -126,6 +164,9 @@ const runProgram = (result) => {
 
   const uProjMatrix = gl.getUniformLocation(shaderProgram, 'projMat')
   const uViewMatrix = gl.getUniformLocation(shaderProgram, 'viewMat')
+
+
+  /*================ Drawing the game =================*/
 
   let firstRenderTimestamp = null
 
