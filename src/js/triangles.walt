@@ -2,10 +2,12 @@ import {
   getCanvasWidth: V2F,
   getCanvasHeight: V2F,
   log: I2V,
-  Math_tan: F2F
+  Math_tan: F2F,
+  triggerDrawCall: V2V
 } from 'env';
 
 type V2F = () => f32;
+type V2V = () => void;
 type I2V = (i32) => void;
 type F2F = (f32) => f32;
 type F2I = (f32) => i32;
@@ -14,6 +16,7 @@ export const memory: Memory<{initial: 16}>; // multiplication of 65536 bytes
 const INT_SIZE: i32 = 4;
 const VALUES_PER_VERTEX: i32 = 3;
 const VALUES_PER_COLOR: i32 = 4;
+const VALUES_PER_TEXCOORD: i32 = 2;
 
 let MAX_TRIANGLES: i32 = 0;
 
@@ -87,7 +90,10 @@ export function generateTextures(): void {
         for (j = 0; j < gap; j+=1) {
           p = (y+i)*w + x + j;
           if (color == 0) {
-            tex[p] = rgb(255, 0, 0);
+            if (y < h/2)
+              tex[p] = rgb(255, 0, 0);
+            else
+              tex[p] = rgb(0, 255, 0);
           }
           else {
             tex[p] = rgb(255, 255, 255);
@@ -165,13 +171,38 @@ function simulate(): void {
 
 let vertexCount: i32 = 0;
 let indexCount: i32 = 0;
+let currentTextureId: i32 = 0;
 
+function doDrawCall(): void {
+  const ret: i32[] = OFFSET_FUNC_RETURN;
+
+  ret[0] = vertexCount;
+  ret[1] = indexCount;
+  ret[2] = currentTextureId;
+
+  triggerDrawCall();
+
+  currentTextureId = -1;
+  vertexCount = 0;
+  indexCount = 0;
+}
+
+function setTexture(newTextureId: i32): void {
+  if (currentTextureId != newTextureId) {
+    if (vertexCount > 0)
+      doDrawCall();
+
+    currentTextureId = newTextureId;
+  }
+}
 
 function triangle(
   v1x: f32, v1y: f32, v1z: f32,
   v2x: f32, v2y: f32, v2z: f32,
   v3x: f32, v3y: f32, v3z: f32
 ): void {
+  setTexture(-1);
+
   const vertices: f32[] = OFFSET_RENDER_VERTEX_BUFFER;
   const colors: f32[] = OFFSET_RENDER_COLOR_BUFFER;
   const indices: i32[] = OFFSET_RENDER_INDEX_BUFFER;
@@ -202,19 +233,59 @@ function triangle(
   indexCount += 3;
 }
 
+function texTriangle(textureId: i32,
+  v1x: f32, v1y: f32, v1z: f32, u1: f32, v1: f32,
+  v2x: f32, v2y: f32, v2z: f32, u2: f32, v2: f32,
+  v3x: f32, v3y: f32, v3z: f32, u3: f32, v3: f32
+): void {
+  setTexture(textureId);
+
+  const vertices: f32[] = OFFSET_RENDER_VERTEX_BUFFER;
+  const texCoords: f32[] = OFFSET_RENDER_TEXCOORDS_BUFFER;
+  const indices: i32[] = OFFSET_RENDER_INDEX_BUFFER;
+
+  let i: i32 = vertexCount * VALUES_PER_VERTEX;
+  vertices[i] = v1x;
+  vertices[i+1] = v1y;
+  vertices[i+2] = v1z;
+  vertices[i+3] = v2x;
+  vertices[i+4] = v2y;
+  vertices[i+5] = v2z;
+  vertices[i+6] = v3x;
+  vertices[i+7] = v3y;
+  vertices[i+8] = v3z;
+
+  i = vertexCount * VALUES_PER_TEXCOORD;
+  texCoords[i] = u1;
+  texCoords[i+1] = v1;
+  texCoords[i+2] = u2;
+  texCoords[i+3] = v2;
+  texCoords[i+4] = u3;
+  texCoords[i+5] = v3;
+
+  indices[indexCount] = vertexCount;
+  indices[indexCount+1] = vertexCount+1;
+  indices[indexCount+2] = vertexCount+2;
+
+  vertexCount += 3;
+  indexCount += 3;
+}
+
 function quad(
-  v1x: f32, v1y: f32, v1z: f32, v2x: f32, v2y: f32, v2z: f32,
-  v3x: f32, v3y: f32, v3z: f32, v4x: f32, v4y: f32, v4z: f32
+  v1x: f32, v1y: f32, v1z: f32,
+  v2x: f32, v2y: f32, v2z: f32,
+  v3x: f32, v3y: f32, v3z: f32,
+  v4x: f32, v4y: f32, v4z: f32
 ): void {
   //1,2,3
   triangle(v1x, v1y, v1z, v2x, v2y, v2z, v3x, v3y, v3z);
-  
+
   //3,4,1
   const vertices: f32[] = OFFSET_RENDER_VERTEX_BUFFER;
   const colors: f32[] = OFFSET_RENDER_COLOR_BUFFER;
   const indices: i32[] = OFFSET_RENDER_INDEX_BUFFER;
   const currentColor: f32[] = OFFSET_CURRENT_COLOR;
-  
+
   let i: i32 = vertexCount * VALUES_PER_VERTEX;
   vertices[i] = v4x;
   vertices[i+1] = v4y;
@@ -225,7 +296,42 @@ function quad(
   colors[i+1] = currentColor[13];
   colors[i+2] = currentColor[14];
   colors[i+3] = currentColor[15];
+
+  indices[indexCount] = vertexCount-1;
+  indices[indexCount+1] = vertexCount;
+  indices[indexCount+2] = vertexCount-3;
+
+  vertexCount += 1;
+  indexCount += 3;
+}
+
+function texQuad(textureId: i32,
+  v1x: f32, v1y: f32, v1z: f32, u1: f32, v1: f32,
+  v2x: f32, v2y: f32, v2z: f32, u2: f32, v2: f32,
+  v3x: f32, v3y: f32, v3z: f32, u3: f32, v3: f32,
+  v4x: f32, v4y: f32, v4z: f32, u4: f32, v4: f32
+): void {
+  //1,2,3
+  texTriangle(textureId,
+    v1x, v1y, v1z, u1, v1,
+    v2x, v2y, v2z, u2, v2,
+    v3x, v3y, v3z, u3, v3
+  );
+
+  //3,4,1
+  const vertices: f32[] = OFFSET_RENDER_VERTEX_BUFFER;
+  const texCoords: f32[] = OFFSET_RENDER_TEXCOORDS_BUFFER;
+  const indices: i32[] = OFFSET_RENDER_INDEX_BUFFER;
+
+  let i: i32 = vertexCount * VALUES_PER_VERTEX;
+  vertices[i] = v4x;
+  vertices[i+1] = v4y;
+  vertices[i+2] = v4z;
   
+  i = vertexCount * VALUES_PER_TEXCOORD;
+  texCoords[i] = u4;
+  texCoords[i+1] = v4;
+
   indices[indexCount] = vertexCount-1;
   indices[indexCount+1] = vertexCount;
   indices[indexCount+2] = vertexCount-3;
@@ -279,10 +385,10 @@ function setColor(alpha: f32, r: f32, g: f32, b: f32): void {
 }
 
 function set16f(addr: i32,
-    f0: f32, f1: f32, f2: f32, f3: f32,
-    f4: f32, f5: f32, f6: f32, f7: f32,
-    f8: f32, f9: f32, f10:f32, f11:f32,
-    f12:f32, f13:f32, f14:f32, f15:f32
+  f0: f32, f1: f32, f2: f32, f3: f32,
+  f4: f32, f5: f32, f6: f32, f7: f32,
+  f8: f32, f9: f32, f10:f32, f11:f32,
+  f12:f32, f13:f32, f14:f32, f15:f32
 ): void {
   const a: f32[] = addr;
   a[0] = f0; a[1] = f1; a[2] = f2; a[3] = f3;
@@ -310,15 +416,17 @@ function setProjectionMatrix(addr: i32,
 // returns numbers:
 //  - number of vertices (same as number of colors)
 //  - number of indices
-export function render(): void {
-  const ret: i32[] = OFFSET_FUNC_RETURN;
+export function render(deltaTime: f32): void {
   const width: f32 = getCanvasWidth();
   const height: f32 = getCanvasHeight();
-  const w2: f32 = width/2.0;
-  const h2: f32 = height/2.0;
+  const h: f32 = height;
+  const w: f32 = width;
+  const w2: f32 = w/2.0;
+  const h2: f32 = h/2.0;
 
   vertexCount = 0;
   indexCount = 0;
+  currentTextureId = -1;
 
   const aspectRatio: f32 = width/height;
   const fieldOfViewInDegrees: f32 = 90.0 * PI_180;
@@ -355,6 +463,10 @@ export function render(): void {
     width, O, z
   );
 
+  texTriangle(TEXTURE_CHECKERBOARD,
+    w2, h, O,      O, O,
+    w2, h/3, O,     O, 1.5,
+    w, h/3, O,  w/h, 1.5);
 
   setColors3(1.0,
     1.0, 0.0, 0.0,
@@ -367,16 +479,8 @@ export function render(): void {
     triangle(
       w2-m, h2, 0.0,
       w2-m, O, 0.0,
-      width-m, O, 0.0);
+      w-m, O, 0.0);
   }
-      
-  setColor(0.4, 1.0, 0.0, 0.0);
-  triangle(
-    -1.0,-1.0, -0.5,
-     1.0,-1.0,-1.0,
-     1.0, 1.0,-1.0);
 
-    
-  ret[0] = vertexCount;
-  ret[1] = indexCount;
+  doDrawCall();
 }

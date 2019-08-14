@@ -4,7 +4,7 @@ const
 , canvas = document.getElementById("c")
 , canvas2d = document.getElementById("t")
 
-, gl_buffer_color_BIT = 16384
+, gl_BUFFER_COLOR_BIT = 16384
 , gl_DEPTH_BUFFER_BIT = 256
 , gl_LEQUAL = 515
 , gl_TRIANGLES = 4
@@ -21,7 +21,9 @@ const
 , gl_TEXTURE_2D = 3553
 , gl_RGB = 6407
 , gl_RGBA = 6408
-      
+
+let performDrawCall = () => {}
+
 const loadProgram = (wasmProgram) => {
   const getCanvasWidth = () => canvas.width
   const getCanvasHeight = () => canvas.height
@@ -31,7 +33,8 @@ const loadProgram = (wasmProgram) => {
     log,
     Math_exp: Math.exp,
     Math_floor: Math.floor,
-    Math_tan: Math.tan
+    Math_tan: Math.tan,
+    triggerDrawCall: () => performDrawCall()
   }
 
   return WebAssembly.instantiate(wasmProgram, { env })
@@ -146,7 +149,7 @@ const runProgram = (result) => {
 
     const texture = gl.createTexture()
     gl.bindTexture(gl_TEXTURE_2D, texture)
-    
+
     // gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1); // use bottom-down storage
     
     gl.texImage2D( gl_TEXTURE_2D, 0, gl_RGBA,
@@ -192,44 +195,52 @@ const runProgram = (result) => {
 
   let firstRenderTimestamp = null
 
+  performDrawCall = () => {
+    const vertexCount = wasm_funcReturnValues[0]
+    const indexCount = wasm_funcReturnValues[1]
+    const currentTextureId = wasm_funcReturnValues[2]
+    const useTexture = currentTextureId >= 0
+
+    gl.bindBuffer(gl_ARRAY_BUFFER, buffer_vertex)
+    gl.bufferData(gl_ARRAY_BUFFER, wasm_vertexBuffer.subarray(0, vertexCount*VALUES_PER_VERTEX), gl_STATIC_DRAW)
+    gl.bindBuffer(gl_ELEMENT_ARRAY_BUFFER, bufer_index)
+    gl.bufferData(gl_ELEMENT_ARRAY_BUFFER, wasm_indexBuffer.subarray(0, indexCount), gl_STATIC_DRAW)
+
+    if (useTexture) {
+      const texCoordsCount = vertexCount;
+      gl.bindBuffer(gl_ARRAY_BUFFER, buffer_texCoords)
+      gl.bufferData(gl_ARRAY_BUFFER, wasm_texCoordsBuffer.subarray(0, texCoordsCount*VALUES_PER_TEXCOORD), gl_STATIC_DRAW)
+    }
+    else {
+      const colorCount = vertexCount
+      gl.bindBuffer(gl_ARRAY_BUFFER, buffer_color)
+      gl.bufferData(gl_ARRAY_BUFFER, wasm_colorBuffer.subarray(0, colorCount*VALUES_PER_COLOR), gl_STATIC_DRAW)
+    }
+
+    gl.bindBuffer(gl_ARRAY_BUFFER, null)
+
+    gl.uniformMatrix4fv(uProjMatrix, false, wasm_projMatrix)
+    gl.uniformMatrix4fv(uViewMatrix, false, wasm_viewMatrix)
+    gl.uniform1i(uUseTexture, useTexture)
+
+    gl.drawElements(gl_TRIANGLES, indexCount, gl_UNSIGNED_INT, 0)
+  }
+
   const render = (timestamp) => {
     if (firstRenderTimestamp == null) {
       firstRenderTimestamp = timestamp
     }
 
-    exports.render(firstRenderTimestamp - timestamp)
-
-    const vertexCount = wasm_funcReturnValues[0]
-    const indexCount = wasm_funcReturnValues[1]
-
-    // log(vertexCount, indexCount)
-
-    gl.bindBuffer(gl_ARRAY_BUFFER, buffer_vertex)
-    gl.bufferData(gl_ARRAY_BUFFER, wasm_vertexBuffer.subarray(0, vertexCount*VALUES_PER_VERTEX), gl_STATIC_DRAW)
-    gl.bindBuffer(gl_ARRAY_BUFFER, buffer_color)
-    gl.bufferData(gl_ARRAY_BUFFER, wasm_colorBuffer.subarray(0, vertexCount*VALUES_PER_COLOR), gl_STATIC_DRAW)
-    gl.bindBuffer(gl_ARRAY_BUFFER, buffer_texCoords)
-    gl.bufferData(gl_ARRAY_BUFFER, wasm_texCoordsBuffer.subarray(0, vertexCount*VALUES_PER_TEXCOORD), gl_STATIC_DRAW)
-    gl.bindBuffer(gl_ARRAY_BUFFER, null)
-    gl.bindBuffer(gl_ELEMENT_ARRAY_BUFFER, bufer_index)
-    gl.bufferData(gl_ELEMENT_ARRAY_BUFFER, wasm_indexBuffer.subarray(0, indexCount), gl_STATIC_DRAW)
-
-    gl.uniformMatrix4fv(uProjMatrix, false, wasm_projMatrix)
-    gl.uniformMatrix4fv(uViewMatrix, false, wasm_viewMatrix)
-    gl.uniform1i(uUseTexture, 0)
-
     gl.clearColor(0.5, 0.5, 0.5, 1.0)
     gl.clearDepth(1.0)
     gl.enable(gl_DEPTH_TEST)
     gl.depthFunc(gl_LEQUAL)
-    gl.clear(gl_buffer_color_BIT | gl_DEPTH_BUFFER_BIT)
+    gl.clear(gl_BUFFER_COLOR_BIT | gl_DEPTH_BUFFER_BIT)
 
-    // Set the view port
+    // will call performDrawCall() at least once
+    exports.render(firstRenderTimestamp - timestamp)
+
     gl.viewport(0, 0, canvas.width, canvas.height)
-
-    // Draw the triangle
-    gl.drawElements(gl_TRIANGLES, indexCount, gl_UNSIGNED_INT,0)
-
     window.requestAnimationFrame(render)
   }
 
