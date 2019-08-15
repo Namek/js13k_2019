@@ -59,6 +59,10 @@ void setColors4(
     float r4, float g4, float b4);
 
 void setColor(float alpha, float r, float g, float b);
+void setColorLeftToRight(
+    float alpha,
+    float r1, float g1, float b1,
+    float r2, float g2, float b2);
 
 void triangle(
     float v1x, float v1y, float v1z,
@@ -88,5 +92,7 @@ int align(int x, int by);
 int rgba(int r, int g, int b, int a);
 int rgb(int r, int g, int b);
 
+void rect(float x, float y, float z, float width, float height);
+void texRect(int textureId, float x, float y, float z, float width, float height, float uLen, float vLen);
 
 #endif

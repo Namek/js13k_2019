@@ -20,7 +20,7 @@ const int SIZE_RENDER_TEXCOORDS_BUFFER = MAX_TRIANGLES * BYTES_PER_VERTEX / 2;
 const int SIZE_PROJECTION_MATRIX = 16 * FLOAT_SIZE;
 const int SIZE_VIEW_MATRIX = 16 * FLOAT_SIZE;
 
-int OFFSET_FUNC_RETURN = 2048; // this has to point at memory after all the globals here since it is a shared memory
+int OFFSET_FUNC_RETURN = 16384; // this has to point at memory after all the globals here since it is a shared memory
 int OFFSET_RENDER_COLOR_BUFFER = OFFSET_FUNC_RETURN + SIZE_FUNC_RETURN;
 int OFFSET_RENDER_VERTEX_BUFFER = OFFSET_RENDER_COLOR_BUFFER + SIZE_RENDER_COLOR_BUFFER;
 int OFFSET_RENDER_INDEX_BUFFER = OFFSET_RENDER_VERTEX_BUFFER + SIZE_RENDER_VERTEX_BUFFER;
@@ -141,6 +141,19 @@ void setColor(float alpha, float r, float g, float b) {
     color[i + 2] = b;
     color[i + 3] = alpha;
   }
+}
+
+// for rect(), usually
+void setColorLeftToRight(
+    float alpha,
+    float r1, float g1, float b1,
+    float r2, float g2, float b2) {
+  setColors4(
+      alpha,
+      r1, g1, b1,
+      r1, g1, b1,
+      r2, g2, b2,
+      r2, g2, b2);
 }
 
 void set16f(
@@ -345,6 +358,21 @@ int align(int x, int by) {
 int rgba(int r, int g, int b, int a) {
   return (a << 24) | (b << 16) | (g << 8) | r;
 }
+
 int rgb(int r, int g, int b) {
   return rgba(r, g, b, 255);
+}
+
+void rect(float x, float y, float z, float width, float height) {
+  setTexture(-1);
+  quad(x, y, z, x, y + height, z, x + width, y + height, z, x + width, y, z);
+}
+
+void texRect(int textureId, float x, float y, float z, float width, float height, float uLen, float vLen) {
+  texQuad(
+      textureId,
+      x, y, z, 0, 0,
+      x, y + height, z, 0, vLen,
+      x + width, y + height, z, uLen, vLen,
+      x + width, y, z, uLen, 0);
 }

@@ -235,7 +235,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
         firstRenderTimestamp = timestamp
       }
 
-      gl.clearColor(0.5, 0.5, 0.5, 1.0)
+      gl.clearColor(0.2, 0.2, 0.8, 1)
       gl.clearDepth(1.0)
       gl.enable(gl_DEPTH_TEST)
       gl.depthFunc(gl_LEQUAL)
