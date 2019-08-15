@@ -144,7 +144,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
 
       if (DEBUG_ENABLED) {
         const canvas2d = document.createElement("canvas")
-        window.t.appendChild(canvas2d)
+        t.appendChild(canvas2d) //`t` is an id for a div defined in HTML
         canvas2d.width = texW
         canvas2d.height = texH
         const ctx = canvas2d.getContext('2d')
@@ -180,12 +180,13 @@ document.addEventListener("DOMContentLoaded", (event) => {
     const OFFSET_PROJECTION_MATRIX = wasm_funcReturnValues[10]
     const OFFSET_VIEW_MATRIX = wasm_funcReturnValues[11]
 
-    const wasm_colorBuffer = new Float32Array(heap, OFFSET_RENDER_BUFFER_COLOR, SIZE_RENDER_BUFFER_COLOR/4)
-    const wasm_vertexBuffer = new Float32Array(heap, OFFSET_RENDER_BUFFER_VERTEX, SIZE_RENDER_BUFFER_VERTEX/4)
+    const f32buffer = (offset, size) => new Float32Array(heap, offset, size)
+    const wasm_colorBuffer = f32buffer(OFFSET_RENDER_BUFFER_COLOR, SIZE_RENDER_BUFFER_COLOR/4)
+    const wasm_vertexBuffer = f32buffer(OFFSET_RENDER_BUFFER_VERTEX, SIZE_RENDER_BUFFER_VERTEX/4)
     const wasm_indexBuffer = new Int32Array(heap, OFFSET_RENDER_BUFFER_INDEX, SIZE_RENDER_BUFFER_INDEX/4)
-    const wasm_texCoordsBuffer = new Float32Array(heap, OFFSET_RENDER_BUFFER_TEXCOORDS, SIZE_RENDER_BUFFER_TEXCOORDS/4)
-    const wasm_projMatrix = new Float32Array(heap, OFFSET_PROJECTION_MATRIX, NUM_MATRIX4)
-    const wasm_viewMatrix = new Float32Array(heap, OFFSET_VIEW_MATRIX, NUM_MATRIX4)
+    const wasm_texCoordsBuffer = f32buffer(OFFSET_RENDER_BUFFER_TEXCOORDS, SIZE_RENDER_BUFFER_TEXCOORDS/4)
+    const wasm_projMatrix = f32buffer(OFFSET_PROJECTION_MATRIX, NUM_MATRIX4)
+    const wasm_viewMatrix = f32buffer(OFFSET_VIEW_MATRIX, NUM_MATRIX4)
   
     const uProjMatrix = gl.getUniformLocation(shaderProgram, 'projMat')
     const uViewMatrix = gl.getUniformLocation(shaderProgram, 'viewMat')
@@ -244,10 +245,10 @@ document.addEventListener("DOMContentLoaded", (event) => {
       exports._render(firstRenderTimestamp - timestamp)
   
       gl.viewport(0, 0, canvas.width, canvas.height)
-      window.requestAnimationFrame(render)
+      requestAnimationFrame(render)
     }
   
-    window.requestAnimationFrame(render)
+    requestAnimationFrame(render)
   }
   const linkShaders = (gl, vertCode, fragCode) => {
     const vertShader = compileShader(gl, gl_VERTEX_SHADER, vertCode)
