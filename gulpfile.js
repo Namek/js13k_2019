@@ -9,17 +9,23 @@ var mkdirp = require('mkdirp');
 var chalk = require('chalk');
 var watch = require('gulp-watch');
 var through = require('through2');
-var exec = require('child_process').execSync;
+// var exec = require('child_process').execSync;
 var path = require('path');
+var spawn = require('child_process').spawnSync
+
+function exec(cmd, args) {
+	return spawn(cmd, args, {shell: true, stdio: "inherit"})
+}
 
 //Chalk colors
 var error = chalk.bold.red;
 var success = chalk.green;
 var regular = chalk.white;
 
-gulp.task('watch', (done) => {
+
+gulp.task('watch-only', (done) => {
 	gulp.watch('./src/js/**/*.js', gulp.series('build-js', 'zip', 'check'));
-	gulp.watch('./src/js/**/*.walt', gulp.series('build-walt', 'zip', 'check'));
+	gulp.watch('./src/wasm/**/*', gulp.series('build-cpp', 'zip', 'check'));
 	gulp.watch('./src/html/**/*.html', gulp.series('build-html', 'check'));
 	gulp.watch('./src/css/**/*.css', gulp.series('build-css', 'check'));
 	gulp.watch('./src/assets/**/*', gulp.series('build-assets', 'check'));
@@ -56,15 +62,52 @@ gulp.task('build-walt', (done) => {
 
 		const newFilename = path.basename(file.path, path.extname(file.path)) + '.wasm'
 		const newFilePath = __dirname + `/build/${newFilename}`
-		exec(`node ${__dirname}/node_modules/walt-cli/index.js ${file.path} -o ${newFilePath}`)
+		exec('node', [`${__dirname}/node_modules/walt-cli/index.js`, file.path, '-o ${newFilePath}'])
 		file.path = newFilePath
 		file.contents = fs.readFileSync(newFilePath)
 		console.log(`${newFilename} is ${file.contents.length} bytes long!`)
 
 		next(null, file);
 	}))
+});
 
-	.pipe(gulp.dest('./build/'));
+gulp.task('build-cpp', (done) => {
+	const dir = './src/wasm'
+	const cppFiles = fs.readdirSync(dir).filter(path => path.endsWith('.cpp')).map(filename => path.join(dir, filename))
+	const destPath = 'build/game.wasm'
+
+	const exportedFunctions = ['preinit', 'generateTextures', 'initGame', 'render']
+		.map(fn => `'_${fn}'`)
+		.join(",")
+
+	function args(text) {
+		return text.split("\n")
+	}
+
+	// build
+	if (exec('em++', args(`
+		${cppFiles.join(" ")}
+		-o ${destPath}
+		-Os
+		-s WASM=1
+		-s SIDE_MODULE=1
+		-s ONLY_MY_CODE=1
+		-s "EXPORTED_FUNCTIONS=[${exportedFunctions}]"
+		-s TOTAL_MEMORY=16MB
+	`)).status == 0) {
+		const origSize = fs.statSync(destPath).size
+
+		// optimize .wasm size
+		exec('wasm-opt', args(`
+			-O4
+			${destPath}
+			-o ${destPath}`
+		))
+		const optSize = fs.statSync(destPath).size
+		console.log(success(`WASM size: ${origSize}, optimized to ${optSize}, diff = ${origSize - optSize}`))
+	}
+
+	done()
 });
 
 gulp.task('build-html', (done) => {
@@ -102,6 +145,8 @@ gulp.task('check', gulp.series('zip', (done) => {
 	done();
 }));
 
-gulp.task('build', gulp.series('build-html', 'build-js', 'build-assets', 'check', (done) => {
+gulp.task('build', gulp.series('build-html', 'build-cpp', 'build-js', 'build-assets', 'check', (done) => {
 	done();
 }));
+
+gulp.task('watch', gulp.series('build', 'watch-only', done => done()))
