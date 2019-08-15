@@ -28,7 +28,7 @@ void render(float deltaTime) {
 
   // background
   const float z = 0;
-  setColor(I, O, O, O);
+  // setColor(I, O, O, O);
 
   setColors4(
       1.0,
@@ -66,6 +66,37 @@ void render(float deltaTime) {
         w2 - m, O, 0.0,
         w - m, O, 0.0);
   }
+
+  float grassHeight = h/7;
+
+  // green grass
+  setColors4(1,
+    0, 1, 0.04,
+    0, 1, 0.04,
+    0, 0.7, 0.04,
+    0, 0.7, 0.04
+  );
+  quad(
+    0, 0, z,
+    0, grassHeight, z,
+    w, grassHeight, z,
+    w, 0, z
+  );
+  setColors4(1,
+    0, 1, 0.04,
+    0, 0.7, 0.04,
+    0, 0.7, 0.04,
+    0, 1, 0.04
+  );
+  quad(
+    0, h, z,
+    w, h, z,
+    w, h-grassHeight, z,
+    0, h-grassHeight, z
+  );
+
+  // road
+  // setColors4()
 
   endFrame();
 }

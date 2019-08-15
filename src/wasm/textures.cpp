@@ -3,19 +3,54 @@
 extern int OFFSET_FUNC_RETURN;
 extern int SIZE_FUNC_RETURN;
 
+struct TextureInfo {
+  int width;
+  int height;
+};
+
+TextureInfo texInfo;
+int x = 0;
+int y = 0;
+int i = 0;
+int j = 0;
+int p = 0;
+
+void checkerboard(int *tex);
+void grass(int *tex);
+
+#define GENERATE_TEXTURE(fn)                                    \
+  fn(tex);                                                      \
+  ret[ri++] = texInfo.width;                                    \
+  ret[ri++] = texInfo.height;                                   \
+  ret[ri++] = (int)tex;                                         \
+  tex = (int *)((int)tex + texInfo.width * texInfo.height * 4); \
+  textureCount += 1;
+
+
 // call it before initEngine()
 void generateTextures() {
   int *ret = (int *)OFFSET_FUNC_RETURN;
-  int x = 0;
-  int y = 0;
-  int i = 0;
-  int j = 0;
-  int p = 0;
 
-  int textureStart = OFFSET_FUNC_RETURN + SIZE_FUNC_RETURN + 1 + 3 * ALL_TEXTURES; //make some space for info about textures
+  int ALL_TEXTURES = 2; // TODO it would be better to emit textures one by one instead of creating them all at once
+
+  int textureStart = align(OFFSET_FUNC_RETURN + SIZE_FUNC_RETURN + 1 + 3 * ALL_TEXTURES, 4); //make some space for info about textures
   int *tex = (int *)textureStart;
-  int textureCount = 0;
 
+  int ri = 0, textureCount = 0;
+  ret[ri++] = 0;
+
+  GENERATE_TEXTURE(checkerboard)
+  GENERATE_TEXTURE(grass)
+
+  ret[0] = textureCount;
+
+  l(ret[0]);
+  l(ret[1]);
+  l(ret[2]);
+  l(ret[3]);
+}
+
+void checkerboard(int *tex) {
   const int w = 500;
   const int h = 500;
   const int gap = 50;
@@ -48,11 +83,22 @@ void generateTextures() {
     color = (color + 1) % 2;
   }
 
-  textureCount += 1;
+  texInfo.width = w;
+  texInfo.height = h;
+}
 
-  // return info about all textures
-  ret[0] = textureCount;
-  ret[1] = w;
-  ret[2] = h;
-  ret[3] = textureStart;
+void grass(int *tex) {
+  const int w = 500;
+  const int h = 500;
+
+  for (y = 0; y < h; y += 1) {
+    for (x = 0; x < w; x += 1) {
+      p = y * w + x;
+      float v = 128.0f + (40.0f * random());
+      tex[p] = rgb(0, CLAMP255(v), 0);
+    }
+  }
+
+  texInfo.width = w;
+  texInfo.height = h;
 }

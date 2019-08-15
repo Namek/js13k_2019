@@ -3,7 +3,7 @@
 
 #include "engine.hpp"
 
-const int ALL_TEXTURES = 1;
 const int TEXTURE_CHECKERBOARD = 0;
+const int TEXTURE_GRASS = 1;
 
 #endif

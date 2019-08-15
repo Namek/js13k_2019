@@ -12,21 +12,25 @@ WASM_EXPORT void render(float deltaTime);
 extern float getCanvasWidth();
 extern float getCanvasHeight();
 extern float Math_tan(float a);
+extern float random();
 extern void triggerDrawCall();
 extern void l(int); //logging
 }
 
 void beginFrame();
 void endFrame();
+void doDrawCall();
 
-// #include <cmath>
 const float I = 1.0;
 const float O = 0.0;
 const float PI = 3.141592653589793;
 const float PI_180 = 0.017453292519943295; // PI/180.0
 
-int rgba(int r, int g, int b, int a);
-int rgb(int r, int g, int b);
+#define MIN(a, b) (a < b ? a : b)
+#define MAX(a, b) (a > b ? a : b)
+#define CLAMP(a, min, max) MIN(max, MAX(min, a))
+#define CLAMP255(a) (int)(CLAMP(a, 0, 255))
+#define CLAMP01(a) (CLAMP(a, 0f, 1f))
 
 void set16f(
     float *a,
@@ -79,6 +83,9 @@ void texQuad(
     float v3x, float v3y, float v3z, float u3, float v3,
     float v4x, float v4y, float v4z, float u4, float v4);
 
-void doDrawCall();
+int align(int x, int by);
+int rgba(int r, int g, int b, int a);
+int rgb(int r, int g, int b);
+
 
 #endif

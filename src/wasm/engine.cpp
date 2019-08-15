@@ -335,6 +335,13 @@ void texQuad(
   indexCount += 3;
 }
 
+int align(int x, int by) {
+  int rest = x % by;
+  return rest > 0
+             ? x + by - rest
+             : x;
+}
+
 int rgba(int r, int g, int b, int a) {
   return (a << 24) | (b << 16) | (g << 8) | r;
 }

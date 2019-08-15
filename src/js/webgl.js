@@ -39,6 +39,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
       // Math_exp: Math.exp,
       // Math_floor: Math.floor,
       _Math_tan: Math.tan,
+      _random: Math.random,
       _triggerDrawCall: () => performDrawCall()
     }
   
@@ -209,6 +210,8 @@ document.addEventListener("DOMContentLoaded", (event) => {
         const texCoordsCount = vertexCount;
         gl.bindBuffer(gl_ARRAY_BUFFER, buffer_texCoords)
         gl.bufferData(gl_ARRAY_BUFFER, wasm_texCoordsBuffer.subarray(0, texCoordsCount*VALUES_PER_TEXCOORD), gl_STATIC_DRAW)
+
+        gl.bindTexture(gl_TEXTURE_2D, textures[currentTextureId])
       }
       else {
         const colorCount = vertexCount
