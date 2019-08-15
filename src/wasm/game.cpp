@@ -1,6 +1,5 @@
 #include "game.hpp"
 
-
 const int MAX_TRIANGLES = 1024;
 
 // shared memory
@@ -29,10 +28,8 @@ int OFFSET_RENDER_TEXCOORDS_BUFFER = 0;
 int OFFSET_PROJECTION_MATRIX = 0;
 int OFFSET_VIEW_MATRIX = 0;
 
-
 // internal memory
 int OFFSET_CURRENT_COLOR = 0;
-
 
 const float I = 1.0;
 const float O = 0.0;
@@ -42,15 +39,12 @@ const float PI_180 = 0.017453292519943295; // PI/180.0
 const int ALL_TEXTURES = 1;
 const int TEXTURE_CHECKERBOARD = 0;
 
-int preinit()
-{
+int preinit() {
   return SIZE_FUNC_RETURN;
 }
 
-
 // returns memory layout
-int initGame()
-{
+void initGame() {
   int *ret = (int *)OFFSET_FUNC_RETURN;
 
   OFFSET_RENDER_COLOR_BUFFER = OFFSET_FUNC_RETURN + SIZE_FUNC_RETURN;
@@ -77,24 +71,18 @@ int initGame()
   ret[9] = OFFSET_RENDER_TEXCOORDS_BUFFER;
   ret[10] = OFFSET_PROJECTION_MATRIX;
   ret[11] = OFFSET_VIEW_MATRIX;
-
-  return SIZE_FUNC_RETURN;
 }
 
-
-int rgba(int r, int g, int b, int a)
-{
+int rgba(int r, int g, int b, int a) {
   return (a << 24) | (b << 16) | (g << 8) | r;
 }
 
-int rgb(int r, int g, int b)
-{
+inline int rgb(int r, int g, int b) {
   return rgba(r, g, b, 255);
 }
 
 // call it before init()
-void generateTextures()
-{
+void generateTextures() {
   int *ret = (int *)OFFSET_FUNC_RETURN;
   int x = 0;
   int y = 0;
@@ -113,25 +101,19 @@ void generateTextures()
 
   // checkerboard: TEXTURE_CHECKERBOARD
   p = 0;
-  for (y = 0; y < h; y += gap)
-  {
-    for (x = 0; x < w; x += gap)
-    {
+  for (y = 0; y < h; y += gap) {
+    for (x = 0; x < w; x += gap) {
       // fill rectangle
-      for (i = 0; i < gap; i += 1)
-      {
-        for (j = 0; j < gap; j += 1)
-        {
+      for (i = 0; i < gap; i += 1) {
+        for (j = 0; j < gap; j += 1) {
           p = (y + i) * w + x + j;
-          if (color == 0)
-          {
+          if (color == 0) {
             if (y < h / 2)
               tex[p] = rgb(255, 0, 0);
             else
               tex[p] = rgb(0, 255, 0);
           }
-          else
-          {
+          else {
             tex[p] = rgb(255, 255, 255);
           }
         }
@@ -153,17 +135,14 @@ void generateTextures()
   ret[3] = textureStart;
 }
 
-
-void simulate()
-{
+void simulate() {
 }
 
 int vertexCount = 0;
 int indexCount = 0;
 int currentTextureId = 0;
 
-void doDrawCall()
-{
+void doDrawCall() {
   int *ret = (int *)OFFSET_FUNC_RETURN;
 
   ret[0] = vertexCount;
@@ -177,10 +156,8 @@ void doDrawCall()
   indexCount = 0;
 }
 
-void setTexture(int newTextureId)
-{
-  if (currentTextureId != newTextureId)
-  {
+void setTexture(int newTextureId) {
+  if (currentTextureId != newTextureId) {
     if (vertexCount > 0)
       doDrawCall();
 
@@ -191,8 +168,7 @@ void setTexture(int newTextureId)
 void triangle(
     float v1x, float v1y, float v1z,
     float v2x, float v2y, float v2z,
-    float v3x, float v3y, float v3z)
-{
+    float v3x, float v3y, float v3z) {
   setTexture(-1);
 
   float *vertices = (float *)OFFSET_RENDER_VERTEX_BUFFER;
@@ -213,8 +189,7 @@ void triangle(
 
   i = vertexCount * VALUES_PER_COLOR;
   int j = 0;
-  for (j = 0; j < 12; j += 1)
-  {
+  for (j = 0; j < 12; j += 1) {
     colors[i + j] = currentColor[j];
   }
 
@@ -226,11 +201,11 @@ void triangle(
   indexCount += 3;
 }
 
-void texTriangle(int textureId,
-                 float v1x, float v1y, float v1z, float u1, float v1,
-                 float v2x, float v2y, float v2z, float u2, float v2,
-                 float v3x, float v3y, float v3z, float u3, float v3)
-{
+void texTriangle(
+    int textureId,
+    float v1x, float v1y, float v1z, float u1, float v1,
+    float v2x, float v2y, float v2z, float u2, float v2,
+    float v3x, float v3y, float v3z, float u3, float v3) {
   setTexture(textureId);
 
   float *vertices = (float *)OFFSET_RENDER_VERTEX_BUFFER;
@@ -268,8 +243,7 @@ void quad(
     float v1x, float v1y, float v1z,
     float v2x, float v2y, float v2z,
     float v3x, float v3y, float v3z,
-    float v4x, float v4y, float v4z)
-{
+    float v4x, float v4y, float v4z) {
   //1,2,3
   triangle(v1x, v1y, v1z, v2x, v2y, v2z, v3x, v3y, v3z);
 
@@ -298,12 +272,12 @@ void quad(
   indexCount += 3;
 }
 
-void texQuad(int textureId,
-             float v1x, float v1y, float v1z, float u1, float v1,
-             float v2x, float v2y, float v2z, float u2, float v2,
-             float v3x, float v3y, float v3z, float u3, float v3,
-             float v4x, float v4y, float v4z, float u4, float v4)
-{
+void texQuad(
+    int textureId,
+    float v1x, float v1y, float v1z, float u1, float v1,
+    float v2x, float v2y, float v2z, float u2, float v2,
+    float v3x, float v3y, float v3z, float u3, float v3,
+    float v4x, float v4y, float v4z, float u4, float v4) {
   //1,2,3
   texTriangle(textureId,
               v1x, v1y, v1z, u1, v1,
@@ -333,8 +307,7 @@ void texQuad(int textureId,
 }
 
 // set 3 colors for 3 triangle vertices
-void setColors3(float alpha, float r1, float g1, float b1, float r2, float g2, float b2, float r3, float g3, float b3)
-{
+void setColors3(float alpha, float r1, float g1, float b1, float r2, float g2, float b2, float r3, float g3, float b3) {
   float *color = (float *)OFFSET_CURRENT_COLOR;
 
   color[0] = r1;
@@ -351,10 +324,12 @@ void setColors3(float alpha, float r1, float g1, float b1, float r2, float g2, f
   color[11] = alpha;
 }
 
-void setColors4(float alpha,
-                float r1, float g1, float b1, float r2, float g2, float b2,
-                float r3, float g3, float b3, float r4, float g4, float b4)
-{
+void setColors4(
+    float alpha,
+    float r1, float g1, float b1,
+    float r2, float g2, float b2,
+    float r3, float g3, float b3,
+    float r4, float g4, float b4) {
   float *color = (float *)OFFSET_CURRENT_COLOR;
   setColors3(alpha, r1, g1, b1, r2, g2, b2, r3, g3, b3);
 
@@ -365,13 +340,11 @@ void setColors4(float alpha,
 }
 
 // set single color for 3 triangle vertices
-void setColor(float alpha, float r, float g, float b)
-{
+void setColor(float alpha, float r, float g, float b) {
   float *color = (float *)OFFSET_CURRENT_COLOR;
 
   int i = 0;
-  for (i = 0; i < 16; i += 4)
-  {
+  for (i = 0; i < 16; i += 4) {
     color[i] = r;
     color[i + 1] = g;
     color[i + 2] = b;
@@ -379,12 +352,12 @@ void setColor(float alpha, float r, float g, float b)
   }
 }
 
-void set16f(float *a,
-            float f0, float f1, float f2, float f3,
-            float f4, float f5, float f6, float f7,
-            float f8, float f9, float f10, float f11,
-            float f12, float f13, float f14, float f15)
-{
+void set16f(
+    float *a,
+    float f0, float f1, float f2, float f3,
+    float f4, float f5, float f6, float f7,
+    float f8, float f9, float f10, float f11,
+    float f12, float f13, float f14, float f15) {
   a[0] = f0;
   a[1] = f1;
   a[2] = f2;
@@ -403,9 +376,9 @@ void set16f(float *a,
   a[15] = f15;
 }
 
-void setProjectionMatrix(float *addr,
-                         float fieldOfViewInRadians, float aspect, float near, float far)
-{
+void setProjectionMatrix(
+    float *addr,
+    float fieldOfViewInRadians, float aspect, float near, float far) {
   const float f = 1; //Math_tan(PI * 0.5f - 0.5f * fieldOfViewInRadians);
   const float rangeInv = 1.0 / (near - far);
 
@@ -419,8 +392,7 @@ void setProjectionMatrix(float *addr,
 // returns numbers:
 //  - number of vertices (same as number of colors)
 //  - number of indices
-void render(float deltaTime)
-{
+void render(float deltaTime) {
   float width = getCanvasWidth();
   float height = getCanvasHeight();
   float h = height;
@@ -448,11 +420,12 @@ void render(float deltaTime)
   const float z = 0;
   setColor(I, O, O, O);
 
-  setColors4(1.0,
-             1.0, 0.0, 0.0,
-             0.0, 1.0, 0.0,
-             0.0, 0.0, 1.0,
-             I, 0.5, 0.0);
+  setColors4(
+      1.0,
+      1.0, 0.0, 0.0,
+      0.0, 1.0, 0.0,
+      0.0, 0.0, 1.0,
+      I, 0.5, 0.0);
 
   quad(
       O, O, z,
@@ -476,8 +449,7 @@ void render(float deltaTime)
              0.0, 0.0, 1.0);
 
   int i = 0;
-  for (i = 0; i < 8; i += 1)
-  {
+  for (i = 0; i < 8; i += 1) {
     const float m = i * 90;
     triangle(
         w2 - m, h2, 0.0,
