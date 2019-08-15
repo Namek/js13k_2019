@@ -76,7 +76,7 @@ gulp.task('build-cpp', (done) => {
 	const cppFiles = fs.readdirSync(dir).filter(path => path.endsWith('.cpp')).map(filename => path.join(dir, filename))
 	const destPath = 'build/game.wasm'
 
-	const exportedFunctions = ['preinit', 'generateTextures', 'initGame', 'render']
+	const exportedFunctions = ['preinit', 'generateTextures', 'initEngine', 'render']
 		.map(fn => `'_${fn}'`)
 		.join(",")
 

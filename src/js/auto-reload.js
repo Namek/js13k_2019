@@ -5,7 +5,7 @@
   const checksDelay = 500
   const additionalFilesToWatch = [
     'webgl.js',
-    'triangles.wasm'
+    'game.wasm'
   ]
   const consoleLoggingEnabled = true
 
