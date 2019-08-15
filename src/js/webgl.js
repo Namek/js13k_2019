@@ -2,8 +2,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
   const
     log = console.log
   , canvas = document.getElementById("c")
-  , canvas2d = document.getElementById("t")
-  
+  , DEBUG_ENABLED = true
   , gl_BUFFER_COLOR_BIT = 16384
   , gl_DEPTH_BUFFER_BIT = 256
   , gl_LEQUAL = 515
@@ -23,6 +22,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
   , gl_RGBA = 6408
   
   let performDrawCall = () => {}
+  let receiveTexture = () => {}
   const memory = new WebAssembly.Memory({initial:256, maximum:256})
   
   const loadProgram = (wasmProgram) => {
@@ -40,17 +40,20 @@ document.addEventListener("DOMContentLoaded", (event) => {
       // Math_floor: Math.floor,
       _Math_tan: Math.tan,
       _random: Math.random,
-      _triggerDrawCall: () => performDrawCall()
+      _triggerDrawCall: () => performDrawCall(),
+      _sendTexture: (p,w,h) => receiveTexture(p,w,h)
     }
   
     return WebAssembly.instantiate(wasmProgram, { env })
   }
-    
+
   const runProgram = (result) => {
     /*============ Creating WebGL context ==================*/
-    const gl = canvas.getContext('webgl2')
-    const ctx = canvas2d.getContext('2d')
-  
+    const
+      gl = canvas.getContext('webgl2')
+    , gl_bindBuffer = function() { gl.bindBuffer.apply(gl, arguments) }
+    , gl_createBuffer = () => gl.createBuffer()
+
     /*========== Preparing WebAssembly memory ==============*/
     const exports = result.instance.exports
     log(exports)
@@ -62,11 +65,11 @@ document.addEventListener("DOMContentLoaded", (event) => {
   
       
     /*============== Defining the geometry ==============*/
-  
-    const buffer_vertex = gl.createBuffer()
-    const buffer_index = gl.createBuffer()
-    const buffer_color = gl.createBuffer()
-    const buffer_texCoords = gl.createBuffer()
+
+    const buffer_vertex = gl_createBuffer()
+    const buffer_index = gl_createBuffer()
+    const buffer_color = gl_createBuffer()
+    const buffer_texCoords = gl_createBuffer()
     
   
     /*================ Shaders ====================*/
@@ -108,19 +111,19 @@ document.addEventListener("DOMContentLoaded", (event) => {
   
     /*======= Associating shaders to buffer objects =======*/
   
-    gl.bindBuffer(gl_ELEMENT_ARRAY_BUFFER, buffer_index)
-    
-    gl.bindBuffer(gl_ARRAY_BUFFER, buffer_vertex)
+    gl_bindBuffer(gl_ELEMENT_ARRAY_BUFFER, buffer_index)
+
+    gl_bindBuffer(gl_ARRAY_BUFFER, buffer_vertex)
     const aPos = gl.getAttribLocation(shaderProgram, "pos")
-    gl.vertexAttribPointer(aPos, 3, gl_FLOAT, false, 0, 0) 
+    gl.vertexAttribPointer(aPos, 3, gl_FLOAT, false, 0, 0)
     gl.enableVertexAttribArray(aPos)
-  
-    gl.bindBuffer(gl_ARRAY_BUFFER, buffer_color)
+
+    gl_bindBuffer(gl_ARRAY_BUFFER, buffer_color)
     const aColor = gl.getAttribLocation(shaderProgram, "color")
     gl.vertexAttribPointer(aColor, 4, gl_FLOAT, false,0,0) 
     gl.enableVertexAttribArray(aColor)
 
-    gl.bindBuffer(gl_ARRAY_BUFFER, buffer_texCoords)
+    gl_bindBuffer(gl_ARRAY_BUFFER, buffer_texCoords)
     const aTexCoords = gl.getAttribLocation(shaderProgram, "texC")
     gl.vertexAttribPointer(aTexCoords, 2, gl_FLOAT, false,0,0)
     gl.enableVertexAttribArray(aTexCoords)
@@ -133,34 +136,32 @@ document.addEventListener("DOMContentLoaded", (event) => {
     const SIZE_FUNC_RETURN = (PREINIT << 16) >> 16
     const wasm_funcReturnValues = new Int32Array(heap, OFFSET_FUNC_RETURN, SIZE_FUNC_RETURN)
   
-    exports._generateTextures()
-    let valIdx = 0
-    const textureCount = wasm_funcReturnValues[valIdx++]
     const textures = []
-    
-    for (let i = 0; i < textureCount; ++i) {
-      const texW = wasm_funcReturnValues[valIdx++]
-      const texH = wasm_funcReturnValues[valIdx++]
-      const texOffset = wasm_funcReturnValues[valIdx++] //* 4
+
+    receiveTexture = (texOffset, texW, texH) => {
       const texSize = 4 * texW * texH
       const texBytes = new Uint8Array(heap, texOffset, texSize)
-  
-      canvas2d.width = texW
-      canvas2d.height = texH
-      const imgData = ctx.createImageData(texW, texH)
-      imgData.data.set(texBytes)
-      ctx.putImageData(imgData, 0, 0)
-  
+
+      if (DEBUG_ENABLED) {
+        const canvas2d = document.createElement("canvas")
+        window.t.appendChild(canvas2d)
+        canvas2d.width = texW
+        canvas2d.height = texH
+        const ctx = canvas2d.getContext('2d')
+        const imgData = ctx.createImageData(texW, texH)
+        imgData.data.set(texBytes)
+        ctx.putImageData(imgData, 0, 0)
+      }
+
       const texture = gl.createTexture()
       gl.bindTexture(gl_TEXTURE_2D, texture)
   
       // gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1); // use bottom-down storage
-      
-      gl.texImage2D( gl_TEXTURE_2D, 0, gl_RGBA,
-        texW, texH, 0, gl_RGBA, gl.UNSIGNED_BYTE, texBytes);
+      gl.texImage2D(gl_TEXTURE_2D, 0, gl_RGBA, texW, texH, 0, gl_RGBA, gl.UNSIGNED_BYTE, texBytes);
       gl.generateMipmap(gl_TEXTURE_2D);
       textures.push(texture)
     }
+    exports._generateTextures()
 
     exports._initEngine()
     const VALUES_PER_VERTEX = wasm_funcReturnValues[1]//3
@@ -201,25 +202,25 @@ document.addEventListener("DOMContentLoaded", (event) => {
       const currentTextureId = wasm_funcReturnValues[2]
       const useTexture = currentTextureId >= 0
   
-      gl.bindBuffer(gl_ARRAY_BUFFER, buffer_vertex)
+      gl_bindBuffer(gl_ARRAY_BUFFER, buffer_vertex)
       gl.bufferData(gl_ARRAY_BUFFER, wasm_vertexBuffer.subarray(0, vertexCount*VALUES_PER_VERTEX), gl_STATIC_DRAW)
-      gl.bindBuffer(gl_ELEMENT_ARRAY_BUFFER, buffer_index)
+      gl_bindBuffer(gl_ELEMENT_ARRAY_BUFFER, buffer_index)
       gl.bufferData(gl_ELEMENT_ARRAY_BUFFER, wasm_indexBuffer.subarray(0, indexCount), gl_STATIC_DRAW)
-  
+
       if (useTexture) {
         const texCoordsCount = vertexCount;
-        gl.bindBuffer(gl_ARRAY_BUFFER, buffer_texCoords)
+        gl_bindBuffer(gl_ARRAY_BUFFER, buffer_texCoords)
         gl.bufferData(gl_ARRAY_BUFFER, wasm_texCoordsBuffer.subarray(0, texCoordsCount*VALUES_PER_TEXCOORD), gl_STATIC_DRAW)
 
         gl.bindTexture(gl_TEXTURE_2D, textures[currentTextureId])
       }
       else {
         const colorCount = vertexCount
-        gl.bindBuffer(gl_ARRAY_BUFFER, buffer_color)
+        gl_bindBuffer(gl_ARRAY_BUFFER, buffer_color)
         gl.bufferData(gl_ARRAY_BUFFER, wasm_colorBuffer.subarray(0, colorCount*VALUES_PER_COLOR), gl_STATIC_DRAW)
       }
-  
-      gl.bindBuffer(gl_ARRAY_BUFFER, null)
+
+      gl_bindBuffer(gl_ARRAY_BUFFER, null)
   
       gl.uniformMatrix4fv(uProjMatrix, false, wasm_projMatrix)
       gl.uniformMatrix4fv(uViewMatrix, false, wasm_viewMatrix)

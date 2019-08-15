@@ -18,36 +18,17 @@ int p = 0;
 void checkerboard(int *tex);
 void grass(int *tex);
 
-#define GENERATE_TEXTURE(fn)                                    \
-  fn(tex);                                                      \
-  ret[ri++] = texInfo.width;                                    \
-  ret[ri++] = texInfo.height;                                   \
-  ret[ri++] = (int)tex;                                         \
-  tex = (int *)((int)tex + texInfo.width * texInfo.height * 4); \
-  textureCount += 1;
-
+#define SEND_TEXTURE(fn) \
+  fn(tex);                   \
+  sendTexture((int)tex, texInfo.width, texInfo.height);
 
 // call it before initEngine()
 void generateTextures() {
-  int *ret = (int *)OFFSET_FUNC_RETURN;
-
-  int ALL_TEXTURES = 2; // TODO it would be better to emit textures one by one instead of creating them all at once
-
-  int textureStart = align(OFFSET_FUNC_RETURN + SIZE_FUNC_RETURN + 1 + 3 * ALL_TEXTURES, 4); //make some space for info about textures
+  int textureStart = align(OFFSET_FUNC_RETURN + SIZE_FUNC_RETURN + 1 + 2, 4); //make some space for info about textures
   int *tex = (int *)textureStart;
 
-  int ri = 0, textureCount = 0;
-  ret[ri++] = 0;
-
-  GENERATE_TEXTURE(checkerboard)
-  GENERATE_TEXTURE(grass)
-
-  ret[0] = textureCount;
-
-  l(ret[0]);
-  l(ret[1]);
-  l(ret[2]);
-  l(ret[3]);
+  SEND_TEXTURE(checkerboard)
+  SEND_TEXTURE(grass)
 }
 
 void checkerboard(int *tex) {

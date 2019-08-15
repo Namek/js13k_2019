@@ -14,6 +14,7 @@ extern float getCanvasHeight();
 extern float Math_tan(float a);
 extern float random();
 extern void triggerDrawCall();
+extern void sendTexture(int ptr, int width, int height);
 extern void l(int); //logging
 }
 
