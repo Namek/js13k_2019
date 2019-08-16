@@ -1,6 +1,141 @@
 #include "game.hpp"
 #include "textures.hpp"
 
+// let's estimate size of history of frames
+// 100 entities * 16 bytes * 60 frames per second * 15 seconds / 1024 bytes = 1406 kB
+
+enum GameState
+{
+  Intro,
+  LevelPresentation, //showing level number, some text
+  Playing,
+  Simulate,
+  Rewind,
+};
+
+enum EntityType
+{
+  Car,
+  TIR,
+  Frog,
+  // Hedgehog,
+  // Cat
+};
+
+struct Entity {
+  int componentBitSet;
+};
+
+struct Component {};
+
+#define DEF_COMPONENT(name) \
+  struct name : Component { \
+    static const int I = __COUNTER__;
+
+#define DEF_END \
+  }             \
+  ;
+
+DEF_COMPONENT(Transform)
+  EntityType type;
+  float x;
+  float y;
+  float orientation;
+DEF_END
+
+DEF_COMPONENT(Vehicle)
+  int laneIndex;
+DEF_END
+
+template <class T>
+class Array {
+  private:
+  int size;
+
+  public:
+  T *data;
+
+  Array(int size) {
+    this->data = new T[size];
+    this->size = size;
+  }
+
+  ~Array() {
+    delete[] data;
+    size = 0;
+  }
+
+  void set(int index, T *el) {
+    data[index] = el;
+  }
+
+  T &get(int index) {
+    return data[index];
+  }
+};
+
+class EntitySystem {
+  public:
+  int componentBitSet;
+  void processEntity(Entity &entity);
+};
+
+class EcsWorld {
+  private:
+  Entity *_entities;
+  Component *_components;
+  EntitySystem *_systems;
+  int _maxEntityCount;
+  int _entitySystemCount;
+  int _lastEntityIndex;
+
+  public:
+  EcsWorld(int maxEntityCount, int componentTypeCount, EntitySystem *systems) {
+    _maxEntityCount = maxEntityCount;
+    _entities = new Entity[maxEntityCount];
+    _components = new Component[componentTypeCount * maxEntityCount];
+    _systems = systems;
+    _entitySystemCount = 0;
+    _lastEntityIndex = -1;
+  }
+
+  Entity &getEntity(int index) {
+    return _entities[index];
+  }
+
+  // createEntity
+
+  void process() {
+    for (int is = 0; is < _entitySystemCount; ++is) {
+      EntitySystem &system = _systems[is];
+      int systemAspect = system.componentBitSet;
+
+      for (int ie = ie; ie < _lastEntityIndex; ++ie) {
+        Entity &entity = _entities[ie];
+        if ((entity.componentBitSet & systemAspect) != 0) {
+          system.processEntity(entity);
+        }
+      }
+    }
+  }
+};
+
+struct LevelParams {
+  int laneCount;
+};
+
+LevelParams initLevel(int levelIndex) {
+  LevelParams p;
+  switch (levelIndex) {
+  default:
+  case 0:
+    p.laneCount = 4;
+  }
+  return p;
+}
+
+GameState gameState = Playing; // Intro;
+
 // returns numbers:
 //  - number of vertices (same as number of colors)
 //  - number of indices
@@ -25,48 +160,10 @@ void render(float deltaTime) {
       1.0, 0.0, 0.0, 0.0,
       0.0, 1.0, 0.0, 0.0,
       0.0, 0.0, 1.0, 0.0,
-      -canvasWidth/2, -canvasHeight/2 + bottomUiHeight, -cameraZ, 1.0);
+      -canvasWidth / 2, -canvasHeight / 2 + bottomUiHeight, -cameraZ, 1.0);
 
   // background
   const float z = 0;
-  // setColor(I, O, O, O);
-
-  setColors4(
-      1.0,
-      1.0, 0.0, 0.0,
-      0.0, 1.0, 0.0,
-      0.0, 0.0, 1.0,
-      I, 0.5, 0.0);
-
-  quad(
-      O, O, z,
-      O, h2, z,
-      w2 / 2.0, h2, z,
-      w, O, z);
-  quad(
-      O, O, z,
-      O, h2, z,
-      w2 / 2.0, h2, z,
-      w, O, z);
-
-  texTriangle(TEXTURE_CHECKERBOARD,
-              w2, h, O, O, O,
-              w2, h / 3, O, O, 1.5,
-              w, h / 3, O, w / h, 1.5);
-
-  setColors3(1.0,
-             1.0, 0.0, 0.0,
-             0.0, 1.0, 0.0,
-             0.0, 0.0, 1.0);
-
-  int i = 0;
-  for (i = 0; i < 8; i += 1) {
-    const float m = i * 90;
-    triangle(
-        w2 - m, h2, 0.0,
-        w2 - m, O, 0.0,
-        w - m, O, 0.0);
-  }
 
   // layout here is:
   // - grass
@@ -81,37 +178,33 @@ void render(float deltaTime) {
   int laneCount = 4;
   float lanesGap = 4;
   float roadsideHeight = 40;
-  float roadHeight = laneCount * laneHeight + ((laneCount-1) * lanesGap);
+  float roadHeight = laneCount * laneHeight + ((laneCount - 1) * lanesGap);
 
-  float grassHeight = (h - roadHeight - 2*roadsideHeight)/2;
+  float grassHeight = (h - roadHeight - 2 * roadsideHeight) / 2;
 
   // grass - top
   setColors4(1,
-    0, 1, 0.04,
-    0, 1, 0.04,
-    0, 0.7, 0.04,
-    0, 0.7, 0.04
-  );
+             0, 1, 0.04,
+             0, 1, 0.04,
+             0, 0.7, 0.04,
+             0, 0.7, 0.04);
   quad(
-    0, 0, z,
-    0, grassHeight, z,
-    w, grassHeight, z,
-    w, 0, z
-  );
+      0, 0, z,
+      0, grassHeight, z,
+      w, grassHeight, z,
+      w, 0, z);
 
   // grass - bottom
   setColors4(1,
-    0, 1, 0.04,
-    0, 0.7, 0.04,
-    0, 0.7, 0.04,
-    0, 1, 0.04
-  );
+             0, 1, 0.04,
+             0, 0.7, 0.04,
+             0, 0.7, 0.04,
+             0, 1, 0.04);
   quad(
-    0, h, z,
-    w, h, z,
-    w, h-grassHeight, z,
-    0, h-grassHeight, z
-  );
+      0, h, z,
+      w, h, z,
+      w, h - grassHeight, z,
+      0, h - grassHeight, z);
 
   float roadY = grassHeight + roadsideHeight;
 
@@ -124,14 +217,16 @@ void render(float deltaTime) {
   setColorLeftToRight(1, 0.1, 0.1, 0.1, 0, 0, 0);
   rect(0, roadY, z, w, roadHeight);
 
-  // draw lanes from top to down
+  // lane gaps - top to down
   float laneY = roadY + roadHeight;
-  for (int i = 0; i < laneCount-1; ++i) {
-    laneY -= (laneHeight+lanesGap);
+  for (int i = 0; i < laneCount - 1; ++i) {
+    laneY -= (laneHeight + lanesGap);
 
     setColor(1, 1, 1, 1);
     rect(0, laneY, z, w, lanesGap);
   }
+
+  // entities (animals, cars, people)
 
   endFrame();
 }
