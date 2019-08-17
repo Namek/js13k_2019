@@ -19,3 +19,11 @@ BraceWrapping:
   BeforeElse: true
   SplitEmptyRecord: true
   SplitEmptyNamespace: true
+MacroBlockBegin: "^DEF_COMPONENT|\
+FOR_EACH_ENTITY|\
+GET_FIRST_ENTITY|\
+DEF_ENTITY_SYSTEM$"
+MacroBlockEnd: "^END_COMPONENT|\
+END_FOR_EACH|\
+END_FIRST_ENTITY|\
+END_ENTITY_SYSTEM$"

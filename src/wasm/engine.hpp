@@ -1,7 +1,7 @@
 #ifndef ENGINE__H
 #define ENGINE__H
 
-#define WASM_EXPORT __attribute__((used))
+#include "common.hpp"
 
 extern "C" {
 WASM_EXPORT int preinit();
@@ -12,10 +12,8 @@ WASM_EXPORT void render(float deltaTime);
 extern float getCanvasWidth();
 extern float getCanvasHeight();
 extern float Math_tan(float a);
-extern float random();
 extern void triggerDrawCall();
 extern void sendTexture(int ptr, int width, int height);
-extern void l(int); //logging
 }
 
 void beginFrame();

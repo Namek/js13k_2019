@@ -75,7 +75,7 @@ void grass(int *tex) {
   for (y = 0; y < h; y += 1) {
     for (x = 0; x < w; x += 1) {
       p = y * w + x;
-      float v = 128.0f + (40.0f * random());
+      float v = 128.0f + (40.0f * randomf());
       tex[p] = rgb(0, CLAMP255(v), 0);
     }
   }

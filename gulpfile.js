@@ -25,7 +25,8 @@ var regular = chalk.white;
 
 gulp.task('watch-only', (done) => {
 	gulp.watch('./src/js/**/*.js', gulp.series('build-js', 'zip', 'check'));
-	gulp.watch('./src/wasm/**/*', gulp.series('build-cpp', 'zip', 'check'));
+	gulp.watch('./src/wasm/**/*.cpp', gulp.series('build-cpp', 'zip', 'check'));
+	gulp.watch('./src/wasm/**/*.hpp', gulp.series('build-cpp', 'zip', 'check'));
 	gulp.watch('./src/html/**/*.html', gulp.series('build-html', 'check'));
 	gulp.watch('./src/css/**/*.css', gulp.series('build-css', 'check'));
 	gulp.watch('./src/assets/**/*', gulp.series('build-assets', 'check'));
@@ -84,17 +85,23 @@ gulp.task('build-cpp', (done) => {
 		return text.split("\n")
 	}
 
-	// build
 	if (exec('em++', args(`
 		${cppFiles.join(" ")}
 		-o ${destPath}
+		--std=c++14
 		-Os
 		-s WASM=1
+		-s NO_EXIT_RUNTIME=1
 		-s SIDE_MODULE=1
 		-s ONLY_MY_CODE=1
 		-s "EXPORTED_FUNCTIONS=[${exportedFunctions}]"
 		-s TOTAL_MEMORY=16MB
 	`)).status == 0) {
+		// exec("%EMSCRIPTEN%/fastcomp/bin/wasm2wat.exe", args(`
+		// 	${destPath}
+		// 	--output=${destPath}.wat
+		// `))
+
 		const origSize = fs.statSync(destPath).size
 
 		// optimize .wasm size

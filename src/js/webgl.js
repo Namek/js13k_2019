@@ -39,7 +39,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
       // Math_exp: Math.exp,
       // Math_floor: Math.floor,
       _Math_tan: Math.tan,
-      _random: Math.random,
+      _randomf: Math.random,
       _triggerDrawCall: () => performDrawCall(),
       _sendTexture: (p,w,h) => receiveTexture(p,w,h)
     }

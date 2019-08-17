@@ -3,7 +3,7 @@
 
 #include "engine.hpp"
 
-const int TEXTURE_CHECKERBOARD = 0;
-const int TEXTURE_GRASS = 1;
+#define TEXTURE_CHECKERBOARD 0
+#define TEXTURE_GRASS 1
 
 #endif
