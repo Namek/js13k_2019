@@ -46,16 +46,24 @@ DEF_COMPONENT(Level) {
 #define COMPONENT_TYPES_COUNT __COUNTER__
 
 
-class PositioningSystem : AAEntitySystem<Transform, Movement> {
+class MovementSystem : public AAEntitySystem<Transform, Movement> {
+  public:
   void processEntity(Entity& entity) {
     Transform& t = getCmp<Transform, 1>();
+  }
+};
+
+class LevelRenderSystem : public AAEntitySystem<Level> {
+  public:
+  void processEntity(Entity& entity) {
+    Level& l = getCmp<Level, 1>();
   }
 };
 
 
 WASM_EXPORT
 void asdomg() {
-  AAWorld<Components<Transform,Level>, Systems<PositioningSystem>, 1000> world;
+  World<Components<Transform,Level>, Systems<MovementSystem, LevelRenderSystem>, 1000> world;
 
 // TODO consider returning int (index or id??)
   Entity& e = world.newEntity();
