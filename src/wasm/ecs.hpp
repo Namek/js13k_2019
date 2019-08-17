@@ -242,14 +242,14 @@ class Systems {
   std::tuple<TSystems...> systems;
 
   public:
+  IAAEntitySystem* indexed;
   const unsigned int N = sizeof...(TSystems);
-  IAAEntitySystem* systemsIndexed;
 
   Systems() {
-    systemsIndexed = new IAAEntitySystem[N];
-    int i = 0;
+    indexed = new IAAEntitySystem[N];
+    unsigned int i = 0;
     for_each_in_tuple(systems, [this, &i](IAAEntitySystem& s) {
-      this->systemsIndexed[i++] = s;
+      this->indexed[i++] = s;
     });
   }
 
@@ -260,8 +260,8 @@ class Systems {
     return (IAAEntitySystem&)std::get<TSystem>(systems);
   }
 
-  EntitySystem& get(std::size_t index) {
-    return (EntitySystem&) systemsIndexed[index];
+  inline IAAEntitySystem& get(unsigned int index) {
+    return (IAAEntitySystem&) indexed[index];
   }
 };
 
@@ -287,7 +287,7 @@ class World<TComponents<TComponentTypes...>, TSystems<TSystemTypes...>, MaxEntit
 
   void process() {
     for (int i = 0; i < systems.N; ++i) {
-      auto system = systems.systemsIndexed[i];
+      auto system = systems.get(i);
       int systemAspect = system.aspect;
 
       for (int ie = ie, ne = entities.size; ie < ne; ++ie) {
