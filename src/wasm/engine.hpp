@@ -12,7 +12,7 @@ WASM_EXPORT void render(float deltaTime);
 extern float getCanvasWidth();
 extern float getCanvasHeight();
 extern float Math_tan(float a);
-extern float random();
+extern float randomf(); // returns 0..1 float. 'f' suffix is here because of collision with stdlib function
 extern void triggerDrawCall();
 extern void sendTexture(int ptr, int width, int height);
 extern void l(int); //logging

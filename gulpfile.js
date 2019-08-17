@@ -88,6 +88,7 @@ gulp.task('build-cpp', (done) => {
 	if (exec('em++', args(`
 		${cppFiles.join(" ")}
 		-o ${destPath}
+		--std=c++17
 		-Os
 		-s WASM=1
 		-s SIDE_MODULE=1
