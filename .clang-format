@@ -19,3 +19,5 @@ BraceWrapping:
   BeforeElse: true
   SplitEmptyRecord: true
   SplitEmptyNamespace: true
+MacroBlockBegin: "^DEF_COMPONENT$"
+MacroBlockEnd: "^DEF_END$"

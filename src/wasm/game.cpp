@@ -23,70 +23,77 @@ enum EntityType
   // Cat
 };
 
-DEF_COMPONENT(Transform) {
+DEF_COMPONENT(Transform)
   EntityType type;
   float x;
   float y;
   float orientation;
-};
+DEF_END
 
-DEF_COMPONENT(Movement) {
+DEF_COMPONENT(Movement)
   float velocityX;
   float velocityY;
-};
+DEF_END
 
-DEF_COMPONENT(Vehicle) {
+DEF_COMPONENT(Vehicle)
   int laneIndex;
-};
+DEF_END
 
-DEF_COMPONENT(Level) {
+DEF_COMPONENT(Level)
   int laneCount;
-};
+DEF_END
 
 #define COMPONENT_TYPES_COUNT __COUNTER__
 
-
-class MovementSystem : public AAEntitySystem<Transform, Movement> {
+class MovementSystem : public EntitySystem {
   public:
-  void processEntity(Entity& entity) {
-    Transform& t = getCmp<Transform, 1>();
+  MovementSystem() : EntitySystem(Transform::I, Movement::I) {}
+
+  void processEntity(Entity &entity) {
+    Transform &t = getCmp<Transform>(entity.id);
   }
 };
 
-class LevelRenderSystem : public AAEntitySystem<Level> {
+class LevelRenderSystem : public EntitySystem {
   public:
-  void processEntity(Entity& entity) {
-    Level& l = getCmp<Level, 1>();
+  LevelRenderSystem() : EntitySystem(Level::I) {}
+
+  void processEntity(Entity &entity) {
+    Level &l = getCmp<Level>(entity);
   }
 };
 
-
-WASM_EXPORT
+// WASM_EXPORT
 void asdomg() {
-  World<Components<Transform,Level>, Systems<MovementSystem, LevelRenderSystem>, 1000> world;
 
-// TODO consider returning int (index or id??)
-  Entity& e = world.newEntity();
+  IEntitySystem systems[] = {
+      LevelRenderSystem(),
+      MovementSystem()};
+
+  EcsWorld world(COMPONENT_TYPES_COUNT, systems);
+
+  // TODO consider returning int (index or id??)
+  EntityEdit &e = world.newEntity();
+  Transform &t = e.get<Transform>();
+
+  // e.create()
 
   world.process();
 
   // Transform& t = world.components.create<Transform>();
 
-// TODO from this point  <-----------------------------------------
-
+  // TODO from this point  <-----------------------------------------
 
   // AAComponentMapper<Transform> mTransform& = world.mapper<Transform>();
 
   // Transform& t = mTransform[e].get();
 }
 
-
-
 // EcsWorld<Components<Transform, Level, Vehicle>, 1000> world;
-typedef  Components<Transform, Level, Vehicle> ComponentTypes;
-auto ct = ComponentTypes();
+// typedef  Components<Transform, Level, Vehicle> ComponentTypes;
+// auto ct = ComponentTypes();
 
-EcsWorld<1000, 50, ComponentTypes, ct > world;
+// EcsWorld<1000, 50, ComponentTypes, ct > world;
 
 void initLevel(int levelIndex) {
   Level level;
@@ -101,15 +108,13 @@ void initLevel(int levelIndex) {
   }
 }
 
-
-
-
-
-
-
-
-
 GameState gameState = Playing; // Intro;
+
+IEntitySystem systems[] = {
+    LevelRenderSystem(),
+    MovementSystem()};
+
+// EcsWorld world(COMPONENT_TYPES_COUNT, systems);
 
 // returns numbers:
 //  - number of vertices (same as number of colors)
@@ -117,9 +122,9 @@ GameState gameState = Playing; // Intro;
 void render(float deltaTime) {
   beginFrame();
 
-  Entity &e = world.newEntity();
-  Level level;
-  e.add(level);
+  // Entity &e = world.newEntity();
+  // Level level;
+  // e.add(level);
 
   float canvasWidth = getCanvasWidth();
   float canvasHeight = getCanvasHeight();
