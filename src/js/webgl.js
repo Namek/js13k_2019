@@ -28,6 +28,8 @@ document.addEventListener("DOMContentLoaded", (event) => {
   const loadProgram = (wasmProgram) => {
     const getCanvasWidth = () => canvas.width
     const getCanvasHeight = () => canvas.height
+    adjustCanvasSizeToHighDpi(canvas)
+
     const env = {
       __memory_base: 0,
       __table_base: 0,
@@ -147,6 +149,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
         t.appendChild(canvas2d) //`t` is an id for a div defined in HTML
         canvas2d.width = texW
         canvas2d.height = texH
+        adjustCanvasSizeToHighDpi(canvas2d)
         const ctx = canvas2d.getContext('2d')
         const imgData = ctx.createImageData(texW, texH)
         imgData.data.set(texBytes)
@@ -279,8 +282,34 @@ document.addEventListener("DOMContentLoaded", (event) => {
   
     return shader
   }
-  
-  
+
+  const PIXEL_RATIO = (function () {
+    let ctx = document.createElement("canvas").getContext("2d"),
+        dpr = window.devicePixelRatio || 1,
+        bsr = ctx.webkitBackingStorePixelRatio ||
+              ctx.mozBackingStorePixelRatio ||
+              ctx.msBackingStorePixelRatio ||
+              ctx.oBackingStorePixelRatio ||
+              ctx.backingStorePixelRatio || 1;
+
+    return dpr / bsr;
+  })()
+
+  // scale down for dpi but to keep logical size look sharp
+  const adjustCanvasSizeToHighDpi = (canvas, is2d) => {
+    let {width, height} = getComputedStyle(canvas)
+    width = width.substr(0, width.length-2)    //trim the 'px'
+    height = height.substr(0, height.length-2) //trim the 'px'
+
+    canvas.style.width = (canvas.width / PIXEL_RATIO) + "px"
+    canvas.style.height = (canvas.height / PIXEL_RATIO) + "px"
+
+    if (is2d) {
+      canvas.getContext("2d").setTransform(PIXEL_RATIO, 0, 0, PIXEL_RATIO, 0, 0)
+    }
+  }
+
+
   fetch('game.wasm?' + new Date().toTimeString())
     .then(response => response.arrayBuffer())
     .then(loadProgram)
