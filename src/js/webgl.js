@@ -33,25 +33,30 @@ document.addEventListener("DOMContentLoaded", (event) => {
   const
     memory = new WebAssembly.Memory({initial:allocatedPages, maximum:allocatedPages})
   , MEMORY_PAGE_SIZE = 65536
-  , MEMORY_BASE = 0
-  , HEAP_START = 65536
+  , MEMORY_BASE = MEMORY_PAGE_SIZE
+  , HEAP_START = 2*65536
+  , STACKTOP = 65536/2
 
   // implementation mimicking unistd.h::sbrk() for growing and shrinking program's memory
   const _sbrk = (size) => {
-    if (dynamicMemoryOffset <= 0)
-      debugger;
+    let ret = dynamicMemoryBreak
 
-    dynamicMemoryBreak += size;
+    if (size != 0) {
+      ret += (16 - dynamicMemoryBreak % 16)
+      dynamicMemoryBreak = ret + size;
 
-    if (dynamicMemoryBreak > MEMORY_PAGE_SIZE*allocatedPages - dynamicMemoryOffset) {
-      allocatedPages += 1
-      // TODO memory.grow(pages)
+      if (dynamicMemoryBreak > MEMORY_PAGE_SIZE*allocatedPages - dynamicMemoryOffset) {
+        allocatedPages += 1
+        throw new Error()
+        // TODO memory.grow(pages)
+      }
+      else if (size < 0) {
+        throw new Error()
+        // TODO on some condition, memory.drop(pages)
+      }
     }
-    else {
-      // TODO on some condition, memory.drop(pages)
-    }
 
-    return dynamicMemoryBreak;
+    return ret;
   }
   
   const loadProgram = (wasmProgram) => {
@@ -60,8 +65,9 @@ document.addEventListener("DOMContentLoaded", (event) => {
     adjustCanvasSizeToHighDpi(canvas)
 
     const env = {
-      __memory_base: 0,
+      __memory_base: MEMORY_BASE,
       __table_base: 0,
+      STACKTOP,
       memory,
       table: new WebAssembly.Table({ initial: 0, element: 'anyfunc' }),
       _getCanvasWidth:getCanvasWidth,
@@ -75,7 +81,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
         while (buf[++i] != 0)
           str += String.fromCharCode(buf[i])
 
-        log("logstr", strPtr, str, length, num);
+        log("logstr:", str, num);
       },
       // Math_exp: Math.exp,
       // Math_floor: Math.floor,
