@@ -1,86 +1,66 @@
+#include "game.hpp"
 #include "engine.hpp"
 #include "textures.hpp"
-#include "ecs.hpp"
 
-// let's estimate size of history of frames
-// 100 entities * 16 bytes * 60 frames per second * 15 seconds / 1024 bytes = 1406 kB
+GameState state;
 
-enum GameState
-{
-  Intro,
-  LevelPresentation, //showing level number, some text
-  Playing,
-  Simulate,
-  Rewind,
-};
+// VehicleParams allVehicleParams[]= {
 
-enum EntityType
-{
-  Car,
-  TIR,
-  Frog,
-  // Hedgehog,
-  // Cat
-};
+// };
 
-DEF_COMPONENT(Transform)
-  EntityType type;
-  float x;
-  float y;
-  float orientation;
-END_COMPONENT
-
-DEF_COMPONENT(Movement)
-  float velocityX;
-  float velocityY;
-END_COMPONENT
-
-DEF_COMPONENT(Vehicle)
-  int laneIndex;
-END_COMPONENT
-
-DEF_COMPONENT(Level)
-  int laneCount;
-END_COMPONENT
-
-#define COMPONENT_TYPES_COUNT __COUNTER__
-
-#define COMPONENT_TYPE_SIZES \
-  { SIZE(Transform),         \
-    SIZE(Movement),          \
-    SIZE(Vehicle),           \
-    SIZE(Level) }
-
-DEF_ENTITY_SYSTEM(LevelRenderSystem, A(Level))
-  static int omg;
-// entity->edit()
+DEF_ENTITY_SYSTEM(UpdateVehiclePositions, A(Vehicle) | A(Transform))
 END_ENTITY_SYSTEM
 
-DEF_ENTITY_SYSTEM(MovementSystem, A(Movement) | A(Transform))
+DEF_ENTITY_SYSTEM(CheckCollisions, A(Collidable) | A(Transform))
+  auto collider = world.getComponent<Collidable>(entity.id);
+  auto transform = world.getComponent<Transform>(entity.id);
+
+  // TODO if anyone collides then change game Phase to Rewind
 
 END_ENTITY_SYSTEM
 
-EcsWorld ecs;
-
-void init() {
-  int componentTypeSizes[] = COMPONENT_TYPE_SIZES;
-  initEcsWorld(ecs, componentTypeSizes);
-}
+DEF_ENTITY_SYSTEM(UpdateFroggy, A(Froggy) | A(Transform))
+  auto frog = getCmp(Froggy);
+END_ENTITY_SYSTEM
 
 void initLevel(int levelIndex) {
-  Level level;
+  EcsWorld &world = state.ecsWorld;
+  LevelParams level;
 
   switch (levelIndex) {
   default:
   case 0:
+    level.froggyXPosition = 0.3;
+    level.froggyThinkingTime = 1.0f;
+    level.maxLaneSpeed = 80;
     level.laneCount = 4;
 
     // Entity &e = world.newEntity();
     // e.add(level);
   }
+
+  state.currentLevel.params = level;
+
+  {
+    auto frog = world.newEntity();
+    auto froggy = world.createComponent<Froggy>(frog.id);
+    froggy.froggyThinkingTime = level.froggyThinkingTime;
+    froggy.stateProgress = 0;
+    froggy.state = WaitForJump;
+
+    auto transform = world.createComponent<Transform>(frog.id);
+    transform.orientation = 0;
+    transform.x = level.froggyXPosition;
+  }
 }
 
-GameState gameState = Playing; // Intro;
+void initGame() {
+  int componentTypeSizes[] = COMPONENT_TYPE_SIZES;
+  initEcsWorld(state.ecsWorld, componentTypeSizes);
+  // state.phase = Playing; // Intro;
+
+  // initLevel(0);
+}
 
 // returns numbers:
 //  - number of vertices (same as number of colors)
@@ -99,6 +79,14 @@ void render(float deltaTime) {
   const float aspectRatio = canvasWidth / canvasHeight;
   const float fieldOfViewInDegrees = 90.0 * PI_180;
   setProjectionMatrix(fieldOfViewInDegrees, aspectRatio, 1.0, 2000.0);
+
+  // process logic with ECS World
+  EcsWorld &world = state.ecsWorld;
+
+  world.deltaTime = deltaTime;
+  UpdateVehiclePositions(world);
+  UpdateFroggy(world);
+  CheckCollisions(world);
 
   // bottom left point is 0,0; center is width/2,height/2
   const float cameraZ = canvasHeight / 2.0;
@@ -121,7 +109,7 @@ void render(float deltaTime) {
   // - grass
 
   float laneHeight = 70;
-  int laneCount = 4;
+  const int laneCount = state.currentLevel.params.laneCount;
   float lanesGap = 4;
   float roadsideHeight = 40;
   float roadHeight = laneCount * laneHeight + ((laneCount - 1) * lanesGap);
@@ -172,7 +160,12 @@ void render(float deltaTime) {
     rect(0, laneY, z, w, lanesGap);
   }
 
-  // entities (animals, cars, people)
+  // draw frog, we know there's only one
+  {
+    auto frog = world.getFirstEntityByAspect(A(Froggy));
+    auto froggy = world.getComponent<Froggy>(frog->id);
+    auto transform = world.getComponent<Transform>(frog->id);
+  }
 
   endFrame();
 }

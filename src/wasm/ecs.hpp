@@ -32,6 +32,8 @@ struct EcsWorld {
   Array entities;
   Array *components;
   int componentTypeCount;
+  float deltaTime;
+
 
   Entity &newEntity() {
     int index;
@@ -100,12 +102,25 @@ struct EcsWorld {
       // TODO abort() if does not exist?
     }
   }
+
+  Entity *getFirstEntityByAspect(int aspectIncludes) {
+    for (int ie = ie, ne = entities.size; ie < ne; ++ie) {
+      Entity *entity = (Entity *)entities.getPtr(ie);
+      if ((entity->componentBitSet & aspectIncludes) != 0) {
+        return entity;
+      }
+    }
+    return 0;
+  }
 };
 
-void initEcsWorld(EcsWorld &state, int componentTypeSizes[]);
+void initEcsWorld(EcsWorld &world, int componentTypeSizes[]);
 
 // ------------------
 // Entity System
+
+#define DECL_ENTITY_SYTEM(name) \
+  void name(EcsWorld &world);
 
 #define DEF_ENTITY_SYSTEM(name, aspectIncludes)                  \
   void name(EcsWorld &world) {                                   \
@@ -130,15 +145,6 @@ void initEcsWorld(EcsWorld &state, int componentTypeSizes[]);
 #define END_FOR_EACH \
   }                  \
   }                  \
-  }
-
-#define GET_FIRST_ENTITY(world, aspectIncludes) \
-  FOR_EACH_ENTITY(world, aspectIncludes)
-
-#define END_FIRST_ENTITY \
-  break;                 \
-  }                      \
-  }                      \
   }
 
 #endif

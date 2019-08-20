@@ -250,7 +250,8 @@ document.addEventListener("DOMContentLoaded", (event) => {
       gl.viewport(0, 0, canvas.width, canvas.height)
       requestAnimationFrame(render)
     }
-  
+
+    exports._initGame();
     requestAnimationFrame(render)
   }
   const linkShaders = (gl, vertCode, fragCode) => {

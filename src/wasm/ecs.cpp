@@ -1,6 +1,8 @@
 #include "ecs.hpp"
 
 void initEcsWorld(EcsWorld &world, int componentTypeSizes[]) {
+  world.deltaTime = 0;
+
   world.entities.init(sizeof(Entity));
 
   int componentTypeCount = sizeof(*componentTypeSizes) / sizeof(int);
