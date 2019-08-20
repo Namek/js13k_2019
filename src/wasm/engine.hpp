@@ -4,7 +4,7 @@
 #include "common.hpp"
 
 extern "C" {
-WASM_EXPORT int preinit();
+WASM_EXPORT int preinit(int memoryBase);
 WASM_EXPORT void generateTextures();
 WASM_EXPORT void initEngine();
 WASM_EXPORT void render(float deltaTime);

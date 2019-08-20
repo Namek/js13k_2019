@@ -56,10 +56,11 @@ void initLevel(int levelIndex) {
 
 void initGame() {
   int componentTypeSizes[] = COMPONENT_TYPE_SIZES;
-  initEcsWorld(state.ecsWorld, componentTypeSizes);
-  // state.phase = Playing; // Intro;
+  initEcsWorld(state.ecsWorld, componentTypeSizes, COMPONENT_TYPE_COUNT);
 
-  // initLevel(0);
+  state.phase = Playing; // Intro;
+
+  initLevel(0);
 }
 
 // returns numbers:
@@ -109,7 +110,7 @@ void render(float deltaTime) {
   // - grass
 
   float laneHeight = 70;
-  const int laneCount = state.currentLevel.params.laneCount;
+  const int laneCount = 4;//state.currentLevel.params.laneCount;
   float lanesGap = 4;
   float roadsideHeight = 40;
   float roadHeight = laneCount * laneHeight + ((laneCount - 1) * lanesGap);

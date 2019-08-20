@@ -21,9 +21,38 @@ document.addEventListener("DOMContentLoaded", (event) => {
   , gl_RGB = 6407
   , gl_RGBA = 6408
   
-  let performDrawCall = () => {}
-  let receiveTexture = () => {}
-  const memory = new WebAssembly.Memory({initial:256, maximum:256})
+  let
+    performDrawCall = () => {}
+  , receiveTexture = () => {}
+
+  let
+    allocatedPages = 256     //65k-sized WebAssembly pages
+  , dynamicMemoryOffset = -1 //start of the program's heap, free to manage by malloc()
+  , dynamicMemoryBreak = -1  //refers to "programbreak" as in native sbrk()
+
+  const
+    memory = new WebAssembly.Memory({initial:allocatedPages, maximum:allocatedPages})
+  , MEMORY_PAGE_SIZE = 65536
+  , MEMORY_BASE = 0
+  , HEAP_START = 65536
+
+  // implementation mimicking unistd.h::sbrk() for growing and shrinking program's memory
+  const _sbrk = (size) => {
+    if (dynamicMemoryOffset <= 0)
+      debugger;
+
+    dynamicMemoryBreak += size;
+
+    if (dynamicMemoryBreak > MEMORY_PAGE_SIZE*allocatedPages - dynamicMemoryOffset) {
+      allocatedPages += 1
+      // TODO memory.grow(pages)
+    }
+    else {
+      // TODO on some condition, memory.drop(pages)
+    }
+
+    return dynamicMemoryBreak;
+  }
   
   const loadProgram = (wasmProgram) => {
     const getCanvasWidth = () => canvas.width
@@ -37,13 +66,24 @@ document.addEventListener("DOMContentLoaded", (event) => {
       table: new WebAssembly.Table({ initial: 0, element: 'anyfunc' }),
       _getCanvasWidth:getCanvasWidth,
       _getCanvasHeight:getCanvasHeight,
-      _l: log,
+      __l: log,
+      __lstr: (strPtr, num) => {
+        let str = "";
+        let buf = new Uint8Array(memory.buffer, strPtr, 100)
+
+        let i = -1
+        while (buf[++i] != 0)
+          str += String.fromCharCode(buf[i])
+
+        log("logstr", strPtr, str, length, num);
+      },
       // Math_exp: Math.exp,
       // Math_floor: Math.floor,
       _Math_tan: Math.tan,
       _randomf: Math.random,
       _triggerDrawCall: () => performDrawCall(),
-      _sendTexture: (p,w,h) => receiveTexture(p,w,h)
+      _sendTexture: (p,w,h) => receiveTexture(p,w,h),
+      _sbrk
     }
   
     return WebAssembly.instantiate(wasmProgram, { env })
@@ -61,8 +101,6 @@ document.addEventListener("DOMContentLoaded", (event) => {
     log(exports)
     const { width, height } = canvas
     const wh = width * height
-    // const pages = 1
-    // memory.grow(pages)
     const heap = memory.buffer
   
       
@@ -133,11 +171,9 @@ document.addEventListener("DOMContentLoaded", (event) => {
 
     /*=========== Initialize the engine =============*/
 
-    const PREINIT = exports._preinit()
-    const OFFSET_FUNC_RETURN = PREINIT >> 16
-    const SIZE_FUNC_RETURN = (PREINIT << 16) >> 16
+    const OFFSET_FUNC_RETURN = exports._preinit(HEAP_START)
+    const SIZE_FUNC_RETURN = 100
     const wasm_funcReturnValues = new Int32Array(heap, OFFSET_FUNC_RETURN, SIZE_FUNC_RETURN)
-  
     const textures = []
 
     receiveTexture = (texOffset, texW, texH) => {
@@ -182,6 +218,9 @@ document.addEventListener("DOMContentLoaded", (event) => {
     const OFFSET_RENDER_BUFFER_TEXCOORDS = wasm_funcReturnValues[9]
     const OFFSET_PROJECTION_MATRIX = wasm_funcReturnValues[10]
     const OFFSET_VIEW_MATRIX = wasm_funcReturnValues[11]
+
+    const OFFSET_DYNAMIC_MEMORY = wasm_funcReturnValues[12]
+    dynamicMemoryOffset = dynamicMemoryBreak = OFFSET_DYNAMIC_MEMORY
 
     const f32buffer = (offset, size) => new Float32Array(heap, offset, size)
     const wasm_colorBuffer = f32buffer(OFFSET_RENDER_BUFFER_COLOR, SIZE_RENDER_BUFFER_COLOR/4)

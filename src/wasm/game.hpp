@@ -1,8 +1,8 @@
 #ifndef GAME__H
 #define GAME__H
 
-#include "ecs.hpp"
 #include "common.hpp"
+#include "ecs.hpp"
 
 extern "C" {
 WASM_EXPORT void initGame();
@@ -59,7 +59,7 @@ DEF_COMPONENT(Froggy)
   float stateProgress;
 END_COMPONENT
 
-#define COMPONENT_TYPES_COUNT __COUNTER__
+#define COMPONENT_TYPE_COUNT __COUNTER__
 
 #define COMPONENT_TYPE_SIZES \
   { SIZE(Transform),         \

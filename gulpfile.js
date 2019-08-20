@@ -13,6 +13,12 @@ var through = require('through2');
 var path = require('path');
 var spawn = require('child_process').spawnSync
 
+const readdirSync = (p, a = []) => {
+	if (fs.statSync(p).isDirectory())
+		fs.readdirSync(p).map(f => readdirSync(a[a.push(path.join(p, f)) - 1], a))
+	return a
+}
+
 function exec(cmd, args) {
 	return spawn(cmd, args, {shell: true, stdio: "inherit"})
 }
@@ -74,16 +80,18 @@ gulp.task('build-walt', (done) => {
 
 gulp.task('build-cpp', (done) => {
 	const dir = './src/wasm'
-	const cppFiles = fs.readdirSync(dir).filter(path => path.endsWith('.cpp')).map(filename => path.join(dir, filename))
+	const cppFiles = readdirSync(dir).filter(path => path.endsWith('.cpp'))
 	const destPath = 'build/game.wasm'
 
-	const exportedFunctions = ['preinit', 'generateTextures', 'initEngine', 'render']
+	const exportedFunctions = ['preinit', 'generateTextures', 'initEngine', 'initGame', 'render']
 		.map(fn => `'_${fn}'`)
 		.join(",")
 
 	function args(text) {
 		return text.split("\n")
 	}
+
+	console.log("Compiling: " + cppFiles.join(" "))
 
 	if (exec('em++', args(`
 		${cppFiles.join(" ")}
@@ -97,7 +105,7 @@ gulp.task('build-cpp', (done) => {
 		-s "EXPORTED_FUNCTIONS=[${exportedFunctions}]"
 		-s TOTAL_MEMORY=16MB
 	`)).status == 0) {
-		// exec("%EMSCRIPTEN%/fastcomp/bin/wasm2wat.exe", args(`
+		// exec('wasm2wat', args(`
 		// 	${destPath}
 		// 	--output=${destPath}.wat
 		// `))

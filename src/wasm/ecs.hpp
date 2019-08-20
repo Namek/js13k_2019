@@ -114,7 +114,7 @@ struct EcsWorld {
   }
 };
 
-void initEcsWorld(EcsWorld &world, int componentTypeSizes[]);
+void initEcsWorld(EcsWorld &world, int componentTypeSizes[], int componentTypeCount);
 
 // ------------------
 // Entity System

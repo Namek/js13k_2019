@@ -1,6 +1,8 @@
 #ifndef ARRAY_H
 #define ARRAY_H
 
+#include "memory.hpp"
+
 #define block_size 1024
 
 struct Array_Block {
@@ -8,12 +10,11 @@ struct Array_Block {
   int elementSize;
   char *data; // it's 1-byte type so pointer arithmetic is possible
 
-  Array_Block() : elementCount(0), removedElsCount(0) {}
-
   void init(int elementSize) {
+    elementCount = 0;
+    removedElsCount = 0;
     this->elementSize = elementSize;
-    int size = elementSize * block_size;
-    data = new char[size];
+    data = (char *)malloc(elementSize * block_size);
   }
 };
 
@@ -26,9 +27,9 @@ struct Array_Block {
 // This structure is best to be used exclusively in one of two ways:
 // 1. only set/get/createAt - when the size doesn't matter and you don't watch out for holes made after removals
 // 2. create/get/remove - when some random elements are removed and you want to preserve memory
-class Array {
+struct Array {
   Array_Block *blocks;
-  int blocks_reserved = 1;
+  int blocks_reserved;
   int elementSize;
 
   public:
@@ -37,9 +38,11 @@ class Array {
   // TODO implement dynamic resize and handle holes after removed elements
 
   void init(int elementSize) {
+    this->size = 0;
     this->elementSize = elementSize;
-    blocks = new Array_Block[elementSize];
-    // blocks = (Array_Block*)operator new(blocks_reserved * sizeof(Array_Block));
+    this->blocks_reserved = 1;
+    blocks = (Array_Block *)malloc(sizeof(Array_Block) * blocks_reserved);
+
     for (int i = 0; i < blocks_reserved; ++i)
       blocks[i].init(elementSize);
   }
