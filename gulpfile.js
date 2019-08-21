@@ -113,13 +113,23 @@ gulp.task('build-cpp', (done) => {
 		const origSize = fs.statSync(destPath).size
 
 		// optimize .wasm size
+		const destPathOpt = `${destPath}-opt`
 		exec('wasm-opt', args(`
 			-O4
 			${destPath}
-			-o ${destPath}`
+			-o ${destPathOpt}`
 		))
-		const optSize = fs.statSync(destPath).size
-		console.log(success(`WASM size: ${origSize}, optimized to ${optSize}, diff = ${origSize - optSize}`))
+		const optSize = fs.statSync(destPathOpt).size
+
+		if (optSize < origSize) {
+			fs.unlinkSync(destPath)
+			console.log(success(`WASM size: ${origSize}, optimized to ${optSize}, diff = ${origSize - optSize}`))
+			fs.renameSync(destPathOpt, destPath)
+		}
+		else {
+			fs.unlinkSync(destPath)
+			console.log(success(`WASM size: ${origSize}, optimization failed by diff = ${origSize - optSize}`))
+		}
 	}
 
 	done()
