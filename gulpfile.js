@@ -133,7 +133,7 @@ gulp.task('build-cpp', (done) => {
 			fs.renameSync(destPathOpt, destPath)
 		}
 		else {
-			fs.unlinkSync(destPath)
+			fs.unlinkSync(destPathOpt)
 			console.log(success(`WASM size: ${origSize}, optimization failed by diff = ${origSize - optSize}`))
 		}
 	}

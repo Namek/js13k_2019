@@ -2,6 +2,7 @@
 #define ARRAY_H
 
 #include "memory.hpp"
+#include "../common.hpp"
 
 #define block_size 1024
 
@@ -57,14 +58,6 @@ struct Array {
     *ptr = *((char *)el);
   }
 
-  // template <class T>
-  // T &create() {
-  //   // TODO support holes after removals
-  //   char *ptr = getPointer(size);
-  //   size += 1;
-  //   return (T &)ptr;
-  // }
-
   char *createPtr() {
     // TODO support holes after removals
     char *ptr = getPointer(size);
@@ -77,18 +70,10 @@ struct Array {
     return createPtr();
   }
 
-  // mix of create() and set() - makes sure that index exists but does not move the `size` value
-  // template <class T>
-  // T &createAt(int index) {
-  //   // TODO support holes after removals - make sure the memory is allocated
-  //   char *ptr = getPointer(size);
-  //   return (T &)ptr;
-  // }
-
   // mix of createPtr() and set() - makes sure that index exists but does not move the `size` value
-  char *createAtPtr(int index) {
+  char *createPtrAt(int index) {
     // TODO support holes after removals - make sure the memory is allocated
-    char *ptr = getPointer(size);
+    char *ptr = getPointer(index);
     return ptr;
   }
 
@@ -98,12 +83,6 @@ struct Array {
     char *ptr = getPointer(index);
     MEMZERO(ptr, elementSize);
   }
-
-  // template <class T>
-  // T &get(int index) {
-  //   char *ptr = getPointer(index);
-  //   return (T &)*ptr;
-  // }
 
   char *getPtr(int index) {
     return getPointer(index);

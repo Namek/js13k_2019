@@ -2,6 +2,7 @@
 #define ECS__H
 
 #include "utils/array.hpp"
+#include "common.hpp"
 
 // ------------------
 // Entity
@@ -79,14 +80,16 @@ struct EcsWorld {
     constexpr int componentIndex = T::I;
     Entity &e = (Entity &)*entities.getPtr(entityId);
 
+    char *ptr;
     if ((e.componentBitSet & (1 << componentIndex)) == 0) {
       e.componentBitSet |= (1 << componentIndex);
-
-      return (T &)*components[componentIndex].createAtPtr(entityId);
+      ptr = components[componentIndex].createPtrAt(entityId);
     }
     else {
-      return (T &)*components[componentIndex].getPtr(entityId);
+      ptr = components[componentIndex].getPtr(entityId);
     }
+
+    return (T &)*ptr;
   }
 
   template <class T>
@@ -104,12 +107,13 @@ struct EcsWorld {
   }
 
   Entity *getFirstEntityByAspect(int aspectIncludes) {
-    for (int ie = ie, ne = entities.size; ie < ne; ++ie) {
+    for (int ie = 0, ne = entities.size; ie < ne; ++ie) {
       Entity *entity = (Entity *)entities.getPtr(ie);
       if ((entity->componentBitSet & aspectIncludes) != 0) {
         return entity;
       }
     }
+    // _lstr("entity_not_found", aspectIncludes);
     return 0;
   }
 };

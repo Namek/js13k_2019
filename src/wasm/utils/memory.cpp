@@ -1,4 +1,5 @@
 #include "memory.hpp"
+#include "../common.hpp"
 
 // this implementation is based on https://github.com/arjun024/memalloc
 // and applies following modifications:
@@ -89,4 +90,13 @@ void free(void *block) {
     return;
   }
   header->s.is_free = 1;
+}
+
+void memcpy(void* src, void* dst, int len) {
+  char* s = (char*)src;
+  char* d = (char*)dst;
+
+  for (uint i = 0; i < len; ++i) {
+    d[i] = s[i];
+  }
 }

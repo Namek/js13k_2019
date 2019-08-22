@@ -6,7 +6,7 @@ const int MAX_TRIANGLES = 1024;
 // shared memory
 int SIZE_FUNC_RETURN = 100;
 
-const int INT_SIZE = 4, FLOAT_SIZE = 4;
+const int INT_SIZE = 4, FLOAT_SIZE = 4, MATRIX_SIZE = 16 * FLOAT_SIZE;
 const int VALUES_PER_VERTEX = 3;
 const int VALUES_PER_COLOR = 4;
 const int VALUES_PER_TEXCOORD = 2;
@@ -18,8 +18,9 @@ const int SIZE_RENDER_VERTEX_BUFFER = MAX_TRIANGLES * BYTES_PER_VERTEX;
 const int SIZE_RENDER_INDEX_BUFFER = MAX_TRIANGLES * BYTES_PER_VERTEX; //usually, it's less
 const int SIZE_RENDER_TEXCOORDS_BUFFER = MAX_TRIANGLES * BYTES_PER_VERTEX / 2;
 
-const int SIZE_PROJECTION_MATRIX = 16 * FLOAT_SIZE;
-const int SIZE_VIEW_MATRIX = 16 * FLOAT_SIZE;
+const int SIZE_PROJECTION_MATRIX = MATRIX_SIZE;
+const int MAX_VIEW_MATRIX_COUNT = 20;
+const int SIZE_VIEW_MATRICES = (MAX_VIEW_MATRIX_COUNT + 1) * MATRIX_SIZE; //stack of 20 view matrixes besides the 21th final matrix (on 0th index)
 
 int HEAP_START;
 int OFFSET_FUNC_RETURN;
@@ -38,6 +39,7 @@ const int SIZE_CURRENT_COLOR = 16 * sizeof(float);
 int vertexCount = 0;
 int indexCount = 0;
 int currentTextureId = 0;
+int currentViewMatrixIndex = MAX_VIEW_MATRIX_COUNT;
 
 int preinit(int heapStart) {
   HEAP_START = heapStart;
@@ -56,7 +58,7 @@ void initEngine() {
   OFFSET_PROJECTION_MATRIX = OFFSET_RENDER_TEXCOORDS_BUFFER + SIZE_RENDER_TEXCOORDS_BUFFER;
   OFFSET_VIEW_MATRIX = OFFSET_PROJECTION_MATRIX + SIZE_PROJECTION_MATRIX;
 
-  const int OFFSET_SHARED_MEMORY_END = OFFSET_VIEW_MATRIX + SIZE_VIEW_MATRIX;
+  const int OFFSET_SHARED_MEMORY_END = OFFSET_VIEW_MATRIX + SIZE_VIEW_MATRICES;
 
   // internal memory
   OFFSET_CURRENT_COLOR = OFFSET_SHARED_MEMORY_END;
@@ -81,19 +83,25 @@ void beginFrame() {
   vertexCount = 0;
   indexCount = 0;
   currentTextureId = -1;
+  currentViewMatrixIndex = MAX_VIEW_MATRIX_COUNT;
 }
 
 void endFrame() {
   if (vertexCount > 0)
-    doDrawCall();
+    flushBuffers();
 }
 
-void doDrawCall() {
+void flushBuffers() {
   int *ret = (int *)OFFSET_FUNC_RETURN;
 
   ret[0] = vertexCount;
   ret[1] = indexCount;
   ret[2] = currentTextureId;
+
+  memcpy(
+      (void *)(OFFSET_VIEW_MATRIX + currentViewMatrixIndex * MATRIX_SIZE),
+      (void *)OFFSET_VIEW_MATRIX,
+      MATRIX_SIZE);
 
   triggerDrawCall();
 
@@ -105,7 +113,7 @@ void doDrawCall() {
 void setTexture(int newTextureId) {
   if (currentTextureId != newTextureId) {
     if (vertexCount > 0)
-      doDrawCall();
+      flushBuffers();
 
     currentTextureId = newTextureId;
   }
@@ -196,7 +204,7 @@ void set16f(
 
 void setProjectionMatrix(float fieldOfViewInRadians, float aspect, float near, float far) {
   if (vertexCount > 0)
-    doDrawCall();
+    flushBuffers();
 
   float *addr = (float *)OFFSET_PROJECTION_MATRIX;
   const float f = 1; //Math_tan(PI * 0.5f - 0.5f * fieldOfViewInRadians);
@@ -209,16 +217,34 @@ void setProjectionMatrix(float fieldOfViewInRadians, float aspect, float near, f
          O, O, near * far * rangeInv * 2.0, O);
 }
 
-void setViewMatrix(
-    float f0, float f1, float f2, float f3,
-    float f4, float f5, float f6, float f7,
-    float f8, float f9, float f10, float f11,
-    float f12, float f13, float f14, float f15) {
-  if (vertexCount > 0)
-    doDrawCall();
+float *getViewMatrix() {
+  return (float *)(OFFSET_VIEW_MATRIX + currentViewMatrixIndex * MATRIX_SIZE);
+}
 
-  float *addr = (float *)OFFSET_VIEW_MATRIX;
-  set16f(addr, f0, f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, f13, f14, f15);
+void setViewMatrix(float *matrix) {
+  float *dst = getViewMatrix();
+  memcpy(matrix, dst, MATRIX_SIZE);
+}
+
+float *pushViewMatrix() {
+  float *src = getViewMatrix();
+  currentViewMatrixIndex -= 1;
+  float *dst = getViewMatrix();
+  memcpy(src, dst, MATRIX_SIZE);
+  return dst;
+}
+
+
+
+// TODO!!!!111
+// we need a separate model matrix
+
+
+
+
+
+void popViewMatrix() {
+  currentViewMatrixIndex += 1;
 }
 
 void triangle(

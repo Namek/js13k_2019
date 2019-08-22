@@ -3,24 +3,32 @@
 
 #include "common.hpp"
 #include "ecs.hpp"
+#include "math/common.h"
 
 extern "C" {
 WASM_EXPORT void initGame();
 }
 
-// to be used in Entity System
-#define getCmp(type) world.getComponent<type>(entity.id)
+
+// to be used in Entity System, uses local `entity` variable
+#define getCmpE(type) (type&)world.getComponent<type>(entity.id)
+
+// to be used everywhere else, requires specifying entity id by hand
+#define getCmp(type, entityId) world.getComponent<type>(entityId)
+
+#define ref auto&
+
 
 DEF_COMPONENT(Transform)
-  float x;           //centerX
+  float x;           //centerX, pixels on screen
   float y;           //centerY
   float orientation; //rotation in radians
 END_COMPONENT
 
 // corresponds to Transform
 DEF_COMPONENT(Collidable)
-  float width;
-  float height;
+  float width;      // pixels on screen
+  float height;     // pixels on screen
 END_COMPONENT
 
 struct VehicleParams {
@@ -53,7 +61,12 @@ enum FrogState
 };
 DEF_COMPONENT(Froggy)
   FrogState state;
+
+  // state == WaitForJump: delay between jumps
   float froggyThinkingTime;
+
+  // how long it jumps every time, sized with pixels on screen
+  float leapLength;
 
   // 0..1 describes both state / amount of waiting time and animation
   float stateProgress;
@@ -79,13 +92,23 @@ enum Phase
 struct LevelParams {
   int maxLaneSpeed;
   int laneCount;
+  float laneHeight;
+  float lanesGap;
+  float roadsideHeight;
   float froggyThinkingTime; //seconds
   float froggyXPosition;    //0..1 - percent of screen
+};
+
+// based on laneHeight, laneCount
+struct LevelRenderCache {
+  float roadHeight;
+  float grassHeight;
 };
 
 struct Level {
   int index;
   LevelParams params;
+  LevelRenderCache render;
 };
 
 struct GameState {

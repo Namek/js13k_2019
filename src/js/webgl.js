@@ -20,6 +20,8 @@ document.addEventListener("DOMContentLoaded", (event) => {
   , gl_TEXTURE_2D = 3553
   , gl_RGB = 6407
   , gl_RGBA = 6408
+  , EVENT_KEYDOWN = 1
+  , EVENT_KEYUP = 2
   
   let
     performDrawCall = () => {}
@@ -91,15 +93,16 @@ document.addEventListener("DOMContentLoaded", (event) => {
         log("logstr:", str, num);
         //endRemoveIf(production)
       },
-      // Math_exp: Math.exp,
-      // Math_floor: Math.floor,
-      _Math_tan: Math.tan,
       _randomf: Math.random,
       _triggerDrawCall: () => performDrawCall(),
       _sendTexture: (p,w,h) => receiveTexture(p,w,h),
       _sbrk
     }
-  
+
+    for (let fnName of 'round,floor,ceil,cos,acos,sin,tan,sqrt,abs,pow'.split(',')) {
+      env['_' + fnName] = Math[fnName]
+    }
+
     return WebAssembly.instantiate(wasmProgram, { env })
   }
 
@@ -112,9 +115,15 @@ document.addEventListener("DOMContentLoaded", (event) => {
 
     /*========== Preparing WebAssembly memory ==============*/
     const exports = result.instance.exports
-    const { width, height } = canvas
-    const wh = width * height
     const heap = memory.buffer
+
+    const passEvent = (eventId) => (evt) => {
+      exports._onEvent(eventId, evt.keyCode)
+      evt.preventDefault()
+      return false;
+    }
+    window.addEventListener('keydown', passEvent(EVENT_KEYDOWN))
+    window.addEventListener('keyup', passEvent(EVENT_KEYUP))
 
     //removeIf(production)
     log(exports)

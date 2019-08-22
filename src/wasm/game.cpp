@@ -1,7 +1,11 @@
 #include "game.hpp"
 #include "engine.hpp"
 #include "textures.hpp"
+#include "models/models.hpp"
 
+#define BOTTOM_UI_HEIGHT 100
+#define BASE_GAME_WIDTH 1200
+#define BASE_GAME_HEIGHT (675 - BOTTOM_UI_HEIGHT)
 GameState state;
 
 // VehicleParams allVehicleParams[]= {
@@ -12,25 +16,29 @@ DEF_ENTITY_SYSTEM(UpdateVehiclePositions, A(Vehicle) | A(Transform))
 END_ENTITY_SYSTEM
 
 DEF_ENTITY_SYSTEM(CheckCollisions, A(Collidable) | A(Transform))
-  auto collider = world.getComponent<Collidable>(entity.id);
-  auto transform = world.getComponent<Transform>(entity.id);
+  ref collider = getCmpE(Collidable);
+  ref transform = getCmpE(Transform);
 
   // TODO if anyone collides then change game Phase to Rewind
 
 END_ENTITY_SYSTEM
 
 DEF_ENTITY_SYSTEM(UpdateFroggy, A(Froggy) | A(Transform))
-  auto frog = getCmp(Froggy);
+  ref frog = getCmpE(Froggy);
 END_ENTITY_SYSTEM
 
 void initLevel(int levelIndex) {
   EcsWorld &world = state.ecsWorld;
   LevelParams level;
 
+  level.lanesGap = 4;
+  level.roadsideHeight = 40;
+  level.laneHeight = 70;
+
   switch (levelIndex) {
   default:
   case 0:
-    level.froggyXPosition = 0.3;
+    level.froggyXPosition = 0.2;
     level.froggyThinkingTime = 1.0f;
     level.maxLaneSpeed = 80;
     level.laneCount = 4;
@@ -40,20 +48,29 @@ void initLevel(int levelIndex) {
   }
 
   state.currentLevel.params = level;
+  state.currentLevel.render.roadHeight = level.laneCount * level.laneHeight + ((level.laneCount - 1) * level.lanesGap);
+  state.currentLevel.render.grassHeight = (BASE_GAME_HEIGHT - state.currentLevel.render.roadHeight - 2 * level.roadsideHeight) / 2;
 
+  // Frog
   {
-    auto frog = world.newEntity();
-    auto froggy = world.createComponent<Froggy>(frog.id);
-    froggy.froggyThinkingTime = level.froggyThinkingTime;
-    froggy.stateProgress = 0;
+    ref frog = world.newEntity();
+    ref froggy = world.createComponent<Froggy>(frog.id);
+    froggy.froggyThinkingTime = state.currentLevel.params.froggyThinkingTime;
     froggy.state = WaitForJump;
+    froggy.stateProgress = 0;
 
-    auto transform = world.createComponent<Transform>(frog.id);
+    ref transform0 = world.createComponent<Transform>(frog.id);
+    ref transform = world.createComponent<Transform>(frog.id);
     transform.orientation = 0;
-    transform.x = level.froggyXPosition;
+    transform.x = BASE_GAME_WIDTH * state.currentLevel.params.froggyXPosition;
+    transform.y = BASE_GAME_HEIGHT - state.currentLevel.render.grassHeight / 2;
+
+    ref collider = world.createComponent<Collidable>(frog.id);
+    collider.width = 40;
+    collider.height = 50;
   }
 }
-
+const char *bits = "bits";
 void initGame() {
   int componentTypeSizes[] = COMPONENT_TYPE_SIZES;
   initEcsWorld(state.ecsWorld, componentTypeSizes, COMPONENT_TYPE_COUNT);
@@ -63,16 +80,26 @@ void initGame() {
   initLevel(0);
 }
 
+void onEvent(int eventType, int value) {
+  if (eventType != EVENT_KEYDOWN) {
+    return;
+  }
+
+  if (value == KEY_RIGHT) {
+
+  }
+}
+
 // returns numbers:
 //  - number of vertices (same as number of colors)
 //  - number of indices
 void render(float deltaTime) {
   beginFrame();
 
+  // TODO apply scale between BASE_GAME_WIDTH and `w` etc. - in case of canvas resize
   float canvasWidth = getCanvasWidth();
   float canvasHeight = getCanvasHeight();
-  float bottomUiHeight = 100;
-  float h = canvasHeight - bottomUiHeight;
+  float h = canvasHeight - BOTTOM_UI_HEIGHT;
   float w = canvasWidth;
   float w2 = w / 2.0;
   float h2 = h / 2.0;
@@ -91,11 +118,11 @@ void render(float deltaTime) {
 
   // bottom left point is 0,0; center is width/2,height/2
   const float cameraZ = canvasHeight / 2.0;
-  setViewMatrix(
+  mat4_set(getViewMatrix(),
       1.0, 0.0, 0.0, 0.0,
       0.0, 1.0, 0.0, 0.0,
       0.0, 0.0, 1.0, 0.0,
-      -canvasWidth / 2, -canvasHeight / 2 + bottomUiHeight, -cameraZ, 1.0);
+      -canvasWidth / 2, -canvasHeight / 2 + BOTTOM_UI_HEIGHT, -cameraZ, 1.0);
 
   // background
   const float z = 0;
@@ -109,13 +136,13 @@ void render(float deltaTime) {
   // - roadside
   // - grass
 
-  float laneHeight = 70;
-  const int laneCount = 4;//state.currentLevel.params.laneCount;
-  float lanesGap = 4;
-  float roadsideHeight = 40;
-  float roadHeight = laneCount * laneHeight + ((laneCount - 1) * lanesGap);
-
-  float grassHeight = (h - roadHeight - 2 * roadsideHeight) / 2;
+  auto &level = state.currentLevel;
+  const int laneCount = level.params.laneCount;
+  const float laneHeight = level.params.laneHeight;
+  const float lanesGap = level.params.lanesGap;
+  const float roadsideHeight = level.params.roadsideHeight;
+  const float grassHeight = level.render.grassHeight;
+  const float roadHeight = level.render.roadHeight;
 
   // grass - top
   setColors4(1,
@@ -123,11 +150,11 @@ void render(float deltaTime) {
              0, 1, 0.04,
              0, 0.7, 0.04,
              0, 0.7, 0.04);
-  quad(
-      0, 0, z,
-      0, grassHeight, z,
-      w, grassHeight, z,
-      w, 0, z);
+  // quad(
+  //     0, 0, z,
+  //     0, grassHeight, z,
+  //     w, grassHeight, z,
+  //     w, 0, z);
 
   // grass - bottom
   setColors4(1,
@@ -144,28 +171,48 @@ void render(float deltaTime) {
   float roadY = grassHeight + roadsideHeight;
 
   // roadsides
-  setColorLeftToRight(1, 0.6, 0.6, 0.6, 0.5, 0.5, 0.5);
-  rect(0, roadY - roadsideHeight, z, w, roadsideHeight);
-  rect(0, roadY + roadHeight, z, w, roadsideHeight);
+  // setColorLeftToRight(1, 0.6, 0.6, 0.6, 0.5, 0.5, 0.5);
+  // rect(0, roadY - roadsideHeight, z, w, roadsideHeight);
+  // rect(0, roadY + roadHeight, z, w, roadsideHeight);
 
-  // black road
-  setColorLeftToRight(1, 0.1, 0.1, 0.1, 0, 0, 0);
-  rect(0, roadY, z, w, roadHeight);
+  // // black road
+  // setColorLeftToRight(1, 0.1, 0.1, 0.1, 0, 0, 0);
+  // rect(0, roadY, z, w, roadHeight);
 
-  // lane gaps - top to down
-  float laneY = roadY + roadHeight;
-  for (int i = 0; i < laneCount - 1; ++i) {
-    laneY -= (laneHeight + lanesGap);
+  // // lane gaps - top to down
+  // float laneY = roadY + roadHeight;
+  // for (int i = 0; i < laneCount - 1; ++i) {
+  //   laneY -= (laneHeight + lanesGap);
 
-    setColor(1, 1, 1, 1);
-    rect(0, laneY, z, w, lanesGap);
-  }
+  //   setColor(1, 1, 1, 1);
+  //   rect(0, laneY, z, w, lanesGap);
+  // }
 
   // draw frog, we know there's only one
   {
-    auto frog = world.getFirstEntityByAspect(A(Froggy));
-    auto froggy = world.getComponent<Froggy>(frog->id);
-    auto transform = world.getComponent<Transform>(frog->id);
+    auto *frog = world.getFirstEntityByAspect(A(Froggy));
+
+    ref froggy = getCmp(Froggy, frog->id);
+    ref transform = getCmp(Transform, frog->id);
+    ref collider = world.getComponent<Collidable>(frog->id);
+    float
+        x = transform.x - collider.width / 2,
+        y = transform.y - collider.height / 2;
+
+
+    setColor(1, 0, 1, 0.4f);
+
+    flushBuffers();
+    auto matFrog = pushViewMatrix();
+    mat4_rotateY(matFrog, matFrog, toRadian(45));
+    vec3_set(vec3Tmp, 500, 170, -60);
+    mat4_translate(matFrog, matFrog, vec3Tmp);
+    renderModel3d(getModel_frog());
+    flushBuffers();
+    popViewMatrix();
+
+    setColor(1, 1, 0, 0);
+    // rect(x, y, z, collider.width, collider.height);
   }
 
   endFrame();
