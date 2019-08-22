@@ -47,11 +47,17 @@ document.addEventListener("DOMContentLoaded", (event) => {
 
       if (dynamicMemoryBreak > MEMORY_PAGE_SIZE*allocatedPages - dynamicMemoryOffset) {
         allocatedPages += 1
+        //removeIf(production)
         throw new Error()
+        //endRemoveIf(production)
+
         // TODO memory.grow(pages)
       }
       else if (size < 0) {
+        //removeIf(production)
         throw new Error()
+        //endRemoveIf(production)
+
         // TODO on some condition, memory.drop(pages)
       }
     }
@@ -74,6 +80,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
       _getCanvasHeight:getCanvasHeight,
       __l: log,
       __lstr: (strPtr, num) => {
+        //removeIf(production)
         let str = "";
         let buf = new Uint8Array(memory.buffer, strPtr, 100)
 
@@ -82,6 +89,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
           str += String.fromCharCode(buf[i])
 
         log("logstr:", str, num);
+        //endRemoveIf(production)
       },
       // Math_exp: Math.exp,
       // Math_floor: Math.floor,
@@ -104,11 +112,13 @@ document.addEventListener("DOMContentLoaded", (event) => {
 
     /*========== Preparing WebAssembly memory ==============*/
     const exports = result.instance.exports
-    log(exports)
     const { width, height } = canvas
     const wh = width * height
     const heap = memory.buffer
-  
+
+    //removeIf(production)
+    log(exports)
+    //endRemoveIf(production)
       
     /*============== Defining the geometry ==============*/
 
@@ -186,6 +196,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
       const texSize = 4 * texW * texH
       const texBytes = new Uint8Array(heap, texOffset, texSize)
 
+      //removeIf(production)
       if (DEBUG_ENABLED) {
         const canvas2d = document.createElement("canvas")
         t.appendChild(canvas2d) //`t` is an id for a div defined in HTML
@@ -197,6 +208,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
         imgData.data.set(texBytes)
         ctx.putImageData(imgData, 0, 0)
       }
+      //endRemoveIf(production)
 
       const texture = gl.createTexture()
       gl.bindTexture(gl_TEXTURE_2D, texture)

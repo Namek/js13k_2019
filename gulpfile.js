@@ -12,6 +12,7 @@ var through = require('through2');
 // var exec = require('child_process').execSync;
 var path = require('path');
 var spawn = require('child_process').spawnSync
+var removeCode = require('gulp-remove-code');
 
 const readdirSync = (p, a = []) => {
 	if (fs.statSync(p).isDirectory())
@@ -27,6 +28,10 @@ function exec(cmd, args) {
 var error = chalk.bold.red;
 var success = chalk.green;
 var regular = chalk.white;
+
+
+var isProduction = false
+const approximatedSizeReductionOnProductionRemovals = 784
 
 
 gulp.task('watch-only', (done) => {
@@ -55,6 +60,7 @@ gulp.task('init', (done) => {
 
 gulp.task('build-js', (done) => {
 	return gulp.src('./src/js/**/*.js')
+	.pipe(removeCode({production: isProduction}))
 	.pipe(uglify())
 	.pipe(gulp.dest('./build/'));
 });
@@ -137,6 +143,7 @@ gulp.task('build-cpp', (done) => {
 
 gulp.task('build-html', (done) => {
 	return gulp.src('./src/html/**/*.html')
+		.pipe(removeCode({production: isProduction}))
 		.pipe(htmlmin({collapseWhitespace: true}))
 		.pipe(gulp.dest('./build/'));
 });
@@ -153,7 +160,12 @@ gulp.task('build-assets', (done) => {
 });
 
 gulp.task('zip', (done) => {
-	return gulp.src('./build/**/*')
+	let srcs = ['./build/**/*', '!**/*.wat']
+
+	if (isProduction)
+		srcs.push( '!**/auto-reload.js')
+
+	return gulp.src(srcs)
 		.pipe(zip('entry.zip')) //gulp-zip performs compression by default
 		.pipe(gulp.dest('dist'));
 });
@@ -161,17 +173,30 @@ gulp.task('zip', (done) => {
 gulp.task('check', gulp.series('zip', (done) => {
 	var stats = fs.statSync("./dist/entry.zip")
 	var fileSize = stats.size;
-	if (fileSize > 13312) {
-		console.log(error("Your zip compressed game is larger than 13kb (13312 bytes)!"))
+	const sizeLimit = 13312
+
+	if (fileSize > sizeLimit) {
+		console.log(error(`Your zip compressed game is larger than 13kb (${sizeLimit} bytes)!`))
 		console.log(regular("Your zip compressed game is " + fileSize + " bytes"));
 	} else {
 		console.log(success("Your zip compressed game is " + fileSize + " bytes."));
 	}
+
+	if (!isProduction) {
+		const approximatedSize = fileSize - approximatedSizeReductionOnProductionRemovals
+		if (approximatedSize <= sizeLimit) {
+			console.log(regular(`gulp build-prod might give you only ~${approximatedSize} bytes!`))
+		}
+	}
+
 	done();
 }));
 
 gulp.task('build', gulp.series('build-html', 'build-cpp', 'build-js', 'build-assets', 'check', (done) => {
 	done();
 }));
+
+gulp.task('build-prod', gulp.series(cb => { isProduction = true; cb() }, 'build'))
+gulp.task('check-prod', gulp.series(cb => { isProduction = true; cb() }, 'check'))
 
 gulp.task('watch', gulp.series('build', 'watch-only', done => done()))
