@@ -9,15 +9,13 @@ extern "C" {
 WASM_EXPORT void initGame();
 }
 
-
 // to be used in Entity System, uses local `entity` variable
-#define getCmpE(type) (type&)world.getComponent<type>(entity.id)
+#define getCmpE(type) (type &)world.getComponent<type>(entity.id)
 
 // to be used everywhere else, requires specifying entity id by hand
 #define getCmp(type, entityId) world.getComponent<type>(entityId)
 
-#define ref auto&
-
+#define ref auto &
 
 DEF_COMPONENT(Transform)
   float x;           //centerX, pixels on screen
@@ -27,8 +25,8 @@ END_COMPONENT
 
 // corresponds to Transform
 DEF_COMPONENT(Collidable)
-  float width;      // pixels on screen
-  float height;     // pixels on screen
+  float width;  // pixels on screen
+  float height; // pixels on screen
 END_COMPONENT
 
 struct VehicleParams {
@@ -111,10 +109,16 @@ struct Level {
   LevelRenderCache render;
 };
 
+struct Camera {
+  float *pos; //vec3
+  float *dir; //vec3
+};
+
 struct GameState {
   Phase phase;
   EcsWorld ecsWorld;
   Level currentLevel;
+  Camera camera;
 };
 
 #endif

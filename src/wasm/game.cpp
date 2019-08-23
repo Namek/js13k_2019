@@ -74,6 +74,8 @@ const char *bits = "bits";
 void initGame() {
   int componentTypeSizes[] = COMPONENT_TYPE_SIZES;
   initEcsWorld(state.ecsWorld, componentTypeSizes, COMPONENT_TYPE_COUNT);
+  vec3_set(state.camera.pos, 0, 0, 0);
+  vec3_set(state.camera.dir, 0, 0, -1);
 
   state.phase = Playing; // Intro;
 
@@ -86,7 +88,17 @@ void onEvent(int eventType, int value) {
   }
 
   if (value == KEY_RIGHT) {
+    state.camera.pos[X] += 20;
+  }
+  else if (value == KEY_LEFT) {
+    state.camera.pos[X] -= 40;
+  }
 
+  if (value == KEY_UP) {
+    state.camera.pos[Y] += 20;
+  }
+  else if (value == KEY_DOWN) {
+    state.camera.pos[Y] -= 40;
   }
 }
 
@@ -105,8 +117,28 @@ void render(float deltaTime) {
   float h2 = h / 2.0;
 
   const float aspectRatio = canvasWidth / canvasHeight;
-  const float fieldOfViewInDegrees = 90.0 * PI_180;
-  setProjectionMatrix(fieldOfViewInDegrees, aspectRatio, 1.0, 2000.0);
+  const float fieldOfView = 90.0 * PI_180;
+
+  const float zNear = 0;
+
+  //setProjectionMatrix(fieldOfView, aspectRatio, 1.0, 2000.0);
+  mat4_perspective(getProjectionMatrix(), fieldOfView, aspectRatio, 1, 1000.0);
+  mat4_multiply(getProjectionMatrix(), getProjectionMatrix(), mat4_fromScaling(mat4Tmp, vec3_set(vec3Tmp, 1, -1, 1)));
+  // setProjectionMatrix(mat4_frustum(mat4Tmp, 0, canvasWidth, canvasHeight, 0, -zNear, 1000.0));
+
+  // top left point is 0,0; center is width/2,height/2
+  mat4_set(getViewMatrix(),
+           1.0, 0.0, 0.0, 0.0,
+           0.0, 1.0, 0.0, 0.0,
+           0.0, 0.0, 1.0, 0.0,
+           -canvasWidth / 2, -canvasHeight / 2, -canvasHeight / 2.0, 1.0);
+
+  triangle(50, h / 2, zNear, 100, h / 2, zNear, 100, h, zNear);
+
+  // TODO state.camera.dir
+  mat4_translate(getViewMatrix(), getViewMatrix(),
+                 vec3_set(vec3Tmp, -state.camera.pos[X], -state.camera.pos[Y], -state.camera.pos[Z]));
+  //TODO camera.dir
 
   // process logic with ECS World
   EcsWorld &world = state.ecsWorld;
@@ -116,16 +148,8 @@ void render(float deltaTime) {
   UpdateFroggy(world);
   CheckCollisions(world);
 
-  // bottom left point is 0,0; center is width/2,height/2
-  const float cameraZ = canvasHeight / 2.0;
-  mat4_set(getViewMatrix(),
-      1.0, 0.0, 0.0, 0.0,
-      0.0, 1.0, 0.0, 0.0,
-      0.0, 0.0, 1.0, 0.0,
-      -canvasWidth / 2, -canvasHeight / 2 + BOTTOM_UI_HEIGHT, -cameraZ, 1.0);
-
   // background
-  const float z = 0;
+  const float z = zNear;
 
   // layout here is:
   // - grass
@@ -150,11 +174,11 @@ void render(float deltaTime) {
              0, 1, 0.04,
              0, 0.7, 0.04,
              0, 0.7, 0.04);
-  // quad(
-  //     0, 0, z,
-  //     0, grassHeight, z,
-  //     w, grassHeight, z,
-  //     w, 0, z);
+  quad(
+      0, 0, z,
+      0, grassHeight, z,
+      w, grassHeight, z,
+      w, 0, z);
 
   // grass - bottom
   setColors4(1,
@@ -170,26 +194,33 @@ void render(float deltaTime) {
 
   float roadY = grassHeight + roadsideHeight;
 
+  float z2 = z - 40;
+  triangle(100, 100, z, 100, 300, z, 400, 300, z);
+  setColor(1, 1, 0, 0);
+  triangle(100, 100, z, 100, 300, z, 100, 100, z2);
+  setColor(1, 1, 0, 1);
+  triangle(100, 100, z2, 400, 300, z2, 400, 100, z2);
+
   // roadsides
-  // setColorLeftToRight(1, 0.6, 0.6, 0.6, 0.5, 0.5, 0.5);
-  // rect(0, roadY - roadsideHeight, z, w, roadsideHeight);
-  // rect(0, roadY + roadHeight, z, w, roadsideHeight);
+  setColorLeftToRight(1, 0.6, 0.6, 0.6, 0.5, 0.5, 0.5);
+  rect(0, roadY - roadsideHeight, z, w, roadsideHeight);
+  rect(0, roadY + roadHeight, z, w, roadsideHeight);
 
   // // black road
-  // setColorLeftToRight(1, 0.1, 0.1, 0.1, 0, 0, 0);
-  // rect(0, roadY, z, w, roadHeight);
+  setColorLeftToRight(1, 0.1, 0.1, 0.1, 0, 0, 0);
+  rect(0, roadY, z, w, roadHeight);
 
   // // lane gaps - top to down
-  // float laneY = roadY + roadHeight;
-  // for (int i = 0; i < laneCount - 1; ++i) {
-  //   laneY -= (laneHeight + lanesGap);
+  float laneY = roadY + roadHeight;
+  for (int i = 0; i < laneCount - 1; ++i) {
+    laneY -= (laneHeight + lanesGap);
 
-  //   setColor(1, 1, 1, 1);
-  //   rect(0, laneY, z, w, lanesGap);
-  // }
+    setColor(1, 1, 1, 1);
+    rect(0, laneY, z, w, lanesGap);
+  }
 
   // draw frog, we know there's only one
-  {
+  if (1) {
     auto *frog = world.getFirstEntityByAspect(A(Froggy));
 
     ref froggy = getCmp(Froggy, frog->id);
@@ -199,17 +230,16 @@ void render(float deltaTime) {
         x = transform.x - collider.width / 2,
         y = transform.y - collider.height / 2;
 
-
     setColor(1, 0, 1, 0.4f);
 
-    flushBuffers();
-    auto matFrog = pushViewMatrix();
-    mat4_rotateY(matFrog, matFrog, toRadian(45));
-    vec3_set(vec3Tmp, 500, 170, -60);
-    mat4_translate(matFrog, matFrog, vec3Tmp);
+// TODO rethinkg pushing/popping so flushing would be automated
+flushBuffers();
+    auto matFrog = mat4_identity(pushModelMatrix());
+    mat4_scale(matFrog, matFrog, vec3_set(vec3Tmp, 0.01, 0.01, 0.01));
+    // mat4_rotateY(matFrog, matFrog, toRadian(90));
+    mat4_translate(matFrog, matFrog, vec3_set(vec3Tmp, 300, 170, 0));
     renderModel3d(getModel_frog());
-    flushBuffers();
-    popViewMatrix();
+    setModelMatrix(matFrog);
 
     setColor(1, 1, 0, 0);
     // rect(x, y, z, collider.width, collider.height);

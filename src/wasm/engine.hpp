@@ -40,13 +40,16 @@ void set16f(
     float f8, float f9, float f10, float f11,
     float f12, float f13, float f14, float f15);
 
-void setProjectionMatrix(
-    float fieldOfViewInRadians, float aspect, float near, float far);
-
+float *getProjectionMatrix();
 float *getViewMatrix();
+float *getModelMatrix();
+void setProjectionMatrix(float *matrix);
 void setViewMatrix(float *matrix);
+void setModelMatrix(float *matrix);
 float *pushViewMatrix();
 void popViewMatrix();
+float *pushModelMatrix();
+void popModelMatrix();
 
 void setColors3(float alpha, float r1, float g1, float b1, float r2, float g2, float b2, float r3, float g3, float b3);
 

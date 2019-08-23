@@ -7,9 +7,10 @@ struct Model3d {
   float vertexAlignX;
   float vertexAlignY;
   float vertexAlignZ;
+  float scale;
+  void *vertices;
   void *faces3;
   void *faces4;
-  void *vertices;
   ushort vertexCount;
   ushort face3Count;
   ushort face4Count;

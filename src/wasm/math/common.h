@@ -10,6 +10,11 @@ float const degree = PI_180;
 
 float toRadian(float a);
 
+#define X 0
+#define Y 1
+#define Z 2
+#define W 3
+
 // sizes
 int const VEC_SIZE_3 = 3;
 int const VEC_SIZE_4 = 4;

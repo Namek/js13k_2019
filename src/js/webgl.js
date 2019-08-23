@@ -146,10 +146,11 @@ document.addEventListener("DOMContentLoaded", (event) => {
     'attribute vec2 texC;'+
     'uniform mat4 projMat;'+
     'uniform mat4 viewMat;'+
+    'uniform mat4 mdlMat;'+
     'varying vec4 vColor;'+
     'varying vec2 vTex;'+
     'void main(void) {' +
-      'gl_Position = projMat * viewMat * vec4(pos, 1.0);' +
+      'gl_Position = projMat * viewMat * mdlMat * vec4(pos, 1.0);' +
       'vColor = color;'+
       'vTex = texC;'+
     '}'
@@ -245,8 +246,9 @@ document.addEventListener("DOMContentLoaded", (event) => {
     const OFFSET_RENDER_BUFFER_TEXCOORDS = wasm_funcReturnValues[9]
     const OFFSET_PROJECTION_MATRIX = wasm_funcReturnValues[10]
     const OFFSET_VIEW_MATRIX = wasm_funcReturnValues[11]
+    const OFFSET_MODEL_MATRIX = wasm_funcReturnValues[12]
 
-    const OFFSET_DYNAMIC_MEMORY = wasm_funcReturnValues[12]
+    const OFFSET_DYNAMIC_MEMORY = wasm_funcReturnValues[13]
     dynamicMemoryOffset = dynamicMemoryBreak = OFFSET_DYNAMIC_MEMORY
 
     const f32buffer = (offset, size) => new Float32Array(heap, offset, size)
@@ -256,9 +258,11 @@ document.addEventListener("DOMContentLoaded", (event) => {
     const wasm_texCoordsBuffer = f32buffer(OFFSET_RENDER_BUFFER_TEXCOORDS, SIZE_RENDER_BUFFER_TEXCOORDS/4)
     const wasm_projMatrix = f32buffer(OFFSET_PROJECTION_MATRIX, NUM_MATRIX4)
     const wasm_viewMatrix = f32buffer(OFFSET_VIEW_MATRIX, NUM_MATRIX4)
-  
+    const wasm_modelMatrix = f32buffer(OFFSET_MODEL_MATRIX, NUM_MATRIX4)
+
     const uProjMatrix = gl.getUniformLocation(shaderProgram, 'projMat')
     const uViewMatrix = gl.getUniformLocation(shaderProgram, 'viewMat')
+    const uModelMatrix = gl.getUniformLocation(shaderProgram, 'mdlMat')
     const uUseTexture = gl.getUniformLocation(shaderProgram, 'useTex')
   
   
@@ -294,6 +298,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
   
       gl.uniformMatrix4fv(uProjMatrix, false, wasm_projMatrix)
       gl.uniformMatrix4fv(uViewMatrix, false, wasm_viewMatrix)
+      gl.uniformMatrix4fv(uModelMatrix, false, wasm_modelMatrix)
       gl.uniform1i(uUseTexture, useTexture)
   
       gl.drawElements(gl_TRIANGLES, indexCount, gl_UNSIGNED_INT, 0)
