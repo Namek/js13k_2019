@@ -103,10 +103,10 @@ bool onEvent(int eventType, int value) {
     state.camera.pos[X] -= tw(0);
   }
   else if (value == KEY_UP) {
-    state.camera.pos[Y] += tw(0);
+    state.camera.pos[Y] -= tw(0);
   }
   else if (value == KEY_DOWN) {
-    state.camera.pos[Y] -= tw(0);
+    state.camera.pos[Y] += tw(0);
   }
   else
     return false;
@@ -135,23 +135,17 @@ void render(float deltaTime) {
 
   const float zNear = 0;
 
-  //setProjectionMatrix(fieldOfView, aspectRatio, 1.0, 2000.0);
+  // axis X goes right, axis Y goes down, axis Z goes towards viewer
   mat4_perspective(getProjectionMatrix(), fieldOfView, aspectRatio, 1, 1000.0);
   mat4_multiply(getProjectionMatrix(), getProjectionMatrix(), mat4_fromScaling(mat4Tmp, vec3_set(vec3Tmp, 1, -1, 1)));
-  // setProjectionMatrix(mat4_frustum(mat4Tmp, 0, canvasWidth, canvasHeight, 0, -zNear, 1000.0));
 
   // top left point is 0,0; center is width/2,height/2
-  mat4_set(getViewMatrix(),
-           1.0, 0.0, 0.0, 0.0,
-           0.0, 1.0, 0.0, 0.0,
-           0.0, 0.0, 1.0, 0.0,
-          //  -canvasWidth / 2, -canvasHeight / 2, -canvasHeight / 2.0, 1.0);
-           0,0,0, 1.0);
+  mat4_translate(getViewMatrix(), mat4_identity(getViewMatrix()), vec3_set(vec3Tmp, -canvasWidth / 2, -canvasHeight / 2, -canvasHeight / 2.0));
 
   triangle(50, h / 2, zNear, 100, h / 2, zNear, 100, h, zNear);
 
   // TODO state.camera.dir
-  float camZ = -tw(1);// -state.camera.pos[Z];
+  float camZ = -state.camera.pos[Z];
   mat4_translate(getViewMatrix(), getViewMatrix(),
                  vec3_set(vec3Tmp, -state.camera.pos[X], -state.camera.pos[Y], camZ));
   //TODO camera.dir
