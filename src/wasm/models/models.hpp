@@ -9,6 +9,7 @@ struct Model3d {
   float vertexAlignZ;
   float scale;
   void *vertices;
+  void *verticesf;
   void *faces3;
   void *faces4;
   ushort vertexCount;
@@ -17,6 +18,7 @@ struct Model3d {
 };
 
 Model3d &getModel_frog();
+Model3d &getModel_test();
 void renderModel3d(Model3d &model);
 
 #endif

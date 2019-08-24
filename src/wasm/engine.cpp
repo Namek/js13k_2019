@@ -261,9 +261,11 @@ float *pushViewMatrix() {
 
 void popViewMatrix() {
   currentViewMatrixIndex += 1;
+  flushBuffers();
 }
 
 float *pushModelMatrix() {
+  flushBuffers();
   float *src = getModelMatrix();
   currentModelMatrixIndex -= 1;
   float *dst = getModelMatrix();
@@ -273,6 +275,7 @@ float *pushModelMatrix() {
 
 void popModelMatrix() {
   currentModelMatrixIndex += 1;
+  flushBuffers();
 }
 
 

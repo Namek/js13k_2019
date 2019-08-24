@@ -12,6 +12,13 @@ GameState state;
 
 // };
 
+
+float tweakValues[10];
+void setTweakValue(int index, float value) {
+  tweakValues[index] = value;
+}
+#define tw(index) tweakValues[index]
+
 DEF_ENTITY_SYSTEM(UpdateVehiclePositions, A(Vehicle) | A(Transform))
 END_ENTITY_SYSTEM
 
@@ -82,25 +89,32 @@ void initGame() {
   initLevel(0);
 }
 
-void onEvent(int eventType, int value) {
+bool onEvent(int eventType, int value) {
   if (eventType != EVENT_KEYDOWN) {
-    return;
+    return false;
   }
+
+  _l(tw(0));
 
   if (value == KEY_RIGHT) {
-    state.camera.pos[X] += 20;
+    state.camera.pos[X] += tw(0);
   }
   else if (value == KEY_LEFT) {
-    state.camera.pos[X] -= 40;
+    state.camera.pos[X] -= tw(0);
   }
-
-  if (value == KEY_UP) {
-    state.camera.pos[Y] += 20;
+  else if (value == KEY_UP) {
+    state.camera.pos[Y] += tw(0);
   }
   else if (value == KEY_DOWN) {
-    state.camera.pos[Y] -= 40;
+    state.camera.pos[Y] -= tw(0);
   }
+  else
+    return false;
+
+  return true;
 }
+
+
 
 // returns numbers:
 //  - number of vertices (same as number of colors)
@@ -131,13 +145,15 @@ void render(float deltaTime) {
            1.0, 0.0, 0.0, 0.0,
            0.0, 1.0, 0.0, 0.0,
            0.0, 0.0, 1.0, 0.0,
-           -canvasWidth / 2, -canvasHeight / 2, -canvasHeight / 2.0, 1.0);
+          //  -canvasWidth / 2, -canvasHeight / 2, -canvasHeight / 2.0, 1.0);
+           0,0,0, 1.0);
 
   triangle(50, h / 2, zNear, 100, h / 2, zNear, 100, h, zNear);
 
   // TODO state.camera.dir
+  float camZ = -tw(1);// -state.camera.pos[Z];
   mat4_translate(getViewMatrix(), getViewMatrix(),
-                 vec3_set(vec3Tmp, -state.camera.pos[X], -state.camera.pos[Y], -state.camera.pos[Z]));
+                 vec3_set(vec3Tmp, -state.camera.pos[X], -state.camera.pos[Y], camZ));
   //TODO camera.dir
 
   // process logic with ECS World
@@ -148,75 +164,76 @@ void render(float deltaTime) {
   UpdateFroggy(world);
   CheckCollisions(world);
 
-  // background
   const float z = zNear;
+  if (1) {
 
-  // layout here is:
-  // - grass
-  // - roadside
-  // - road:
-  //   - (lane, gap)...
-  //   - lane
-  // - roadside
-  // - grass
+    // layout here is:
+    // - grass
+    // - roadside
+    // - road:
+    //   - (lane, gap)...
+    //   - lane
+    // - roadside
+    // - grass
 
-  auto &level = state.currentLevel;
-  const int laneCount = level.params.laneCount;
-  const float laneHeight = level.params.laneHeight;
-  const float lanesGap = level.params.lanesGap;
-  const float roadsideHeight = level.params.roadsideHeight;
-  const float grassHeight = level.render.grassHeight;
-  const float roadHeight = level.render.roadHeight;
+    auto &level = state.currentLevel;
+    const int laneCount = level.params.laneCount;
+    const float laneHeight = level.params.laneHeight;
+    const float lanesGap = level.params.lanesGap;
+    const float roadsideHeight = level.params.roadsideHeight;
+    const float grassHeight = level.render.grassHeight;
+    const float roadHeight = level.render.roadHeight;
 
-  // grass - top
-  setColors4(1,
-             0, 1, 0.04,
-             0, 1, 0.04,
-             0, 0.7, 0.04,
-             0, 0.7, 0.04);
-  quad(
-      0, 0, z,
-      0, grassHeight, z,
-      w, grassHeight, z,
-      w, 0, z);
+    // grass - top
+    setColors4(1,
+               0, 1, 0.04,
+               0, 1, 0.04,
+               0, 0.7, 0.04,
+               0, 0.7, 0.04);
+    quad(
+        0, 0, z,
+        0, grassHeight, z,
+        w, grassHeight, z,
+        w, 0, z);
 
-  // grass - bottom
-  setColors4(1,
-             0, 1, 0.04,
-             0, 0.7, 0.04,
-             0, 0.7, 0.04,
-             0, 1, 0.04);
-  quad(
-      0, h, z,
-      w, h, z,
-      w, h - grassHeight, z,
-      0, h - grassHeight, z);
+    // grass - bottom
+    setColors4(1,
+               0, 1, 0.04,
+               0, 0.7, 0.04,
+               0, 0.7, 0.04,
+               0, 1, 0.04);
+    quad(
+        0, h, z,
+        w, h, z,
+        w, h - grassHeight, z,
+        0, h - grassHeight, z);
 
-  float roadY = grassHeight + roadsideHeight;
+    float roadY = grassHeight + roadsideHeight;
 
-  float z2 = z - 40;
-  triangle(100, 100, z, 100, 300, z, 400, 300, z);
-  setColor(1, 1, 0, 0);
-  triangle(100, 100, z, 100, 300, z, 100, 100, z2);
-  setColor(1, 1, 0, 1);
-  triangle(100, 100, z2, 400, 300, z2, 400, 100, z2);
+    float z2 = z - 40;
+    triangle(100, 100, z, 100, 300, z, 400, 300, z);
+    setColor(1, 1, 0, 0);
+    triangle(100, 100, z, 100, 300, z, 100, 100, z2);
+    setColor(1, 1, 0, 1);
+    triangle(100, 100, z2, 400, 300, z2, 400, 100, z2);
 
-  // roadsides
-  setColorLeftToRight(1, 0.6, 0.6, 0.6, 0.5, 0.5, 0.5);
-  rect(0, roadY - roadsideHeight, z, w, roadsideHeight);
-  rect(0, roadY + roadHeight, z, w, roadsideHeight);
+    // roadsides
+    setColorLeftToRight(1, 0.6, 0.6, 0.6, 0.5, 0.5, 0.5);
+    rect(0, roadY - roadsideHeight, z, w, roadsideHeight);
+    rect(0, roadY + roadHeight, z, w, roadsideHeight);
 
-  // // black road
-  setColorLeftToRight(1, 0.1, 0.1, 0.1, 0, 0, 0);
-  rect(0, roadY, z, w, roadHeight);
+    // // black road
+    setColorLeftToRight(1, 0.1, 0.1, 0.1, 0, 0, 0);
+    rect(0, roadY, z, w, roadHeight);
 
-  // // lane gaps - top to down
-  float laneY = roadY + roadHeight;
-  for (int i = 0; i < laneCount - 1; ++i) {
-    laneY -= (laneHeight + lanesGap);
+    // lane gaps - top to down
+    float laneY = roadY + roadHeight;
+    for (int i = 0; i < laneCount - 1; ++i) {
+      laneY -= (laneHeight + lanesGap);
 
-    setColor(1, 1, 1, 1);
-    rect(0, laneY, z, w, lanesGap);
+      setColor(1, 1, 1, 1);
+      rect(0, laneY, z, w, lanesGap);
+    }
   }
 
   // draw frog, we know there's only one
@@ -230,20 +247,23 @@ void render(float deltaTime) {
         x = transform.x - collider.width / 2,
         y = transform.y - collider.height / 2;
 
-    setColor(1, 0, 1, 0.4f);
+    setColor(1, 1, 0, 0.4f);
 
-// TODO rethinkg pushing/popping so flushing would be automated
-flushBuffers();
     auto matFrog = mat4_identity(pushModelMatrix());
-    mat4_scale(matFrog, matFrog, vec3_set(vec3Tmp, 0.01, 0.01, 0.01));
-    // mat4_rotateY(matFrog, matFrog, toRadian(90));
-    mat4_translate(matFrog, matFrog, vec3_set(vec3Tmp, 300, 170, 0));
+    float frogScale = 1;
+    mat4_translate(matFrog, matFrog, vec3_set(vec3Tmp, 10, 0,0));
+    mat4_scale(matFrog, matFrog, vec3_set(vec3Tmp, frogScale, frogScale, frogScale));
+    // mat4_rotateX(matFrog, matFrog, toRadian(-90));
+
+    setColor(1, 1, 0, 0);
     renderModel3d(getModel_frog());
     setModelMatrix(matFrog);
+    popModelMatrix();
 
     setColor(1, 1, 0, 0);
     // rect(x, y, z, collider.width, collider.height);
   }
+  // rect(100, 100, z, 300, 150);
 
   endFrame();
 }

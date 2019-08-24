@@ -9,7 +9,8 @@ WASM_EXPORT int preinit(int memoryBase);
 WASM_EXPORT void generateTextures();
 WASM_EXPORT void initEngine();
 WASM_EXPORT void render(float deltaTime);
-WASM_EXPORT void onEvent(int eventType, int value);
+WASM_EXPORT bool onEvent(int eventType, int value);
+WASM_EXPORT void setTweakValue(int index, float value);
 
 extern float getCanvasWidth();
 extern float getCanvasHeight();

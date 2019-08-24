@@ -2,7 +2,8 @@ document.addEventListener("DOMContentLoaded", (event) => {
   const
     log = console.log
   , canvas = document.getElementById("c")
-  , DEBUG_ENABLED = true
+  , DEBUG_TEXTURES = true
+  , DEBUG_TWEAK = true
   , gl_BUFFER_COLOR_BIT = 16384
   , gl_DEPTH_BUFFER_BIT = 256
   , gl_LEQUAL = 515
@@ -118,9 +119,11 @@ document.addEventListener("DOMContentLoaded", (event) => {
     const heap = memory.buffer
 
     const passEvent = (eventId) => (evt) => {
-      exports._onEvent(eventId, evt.keyCode)
-      evt.preventDefault()
-      return false;
+      let handled = exports._onEvent(eventId, evt.keyCode)
+      if (handled) {
+        evt.preventDefault()
+        return false;
+      }
     }
     window.addEventListener('keydown', passEvent(EVENT_KEYDOWN))
     window.addEventListener('keyup', passEvent(EVENT_KEYUP))
@@ -197,6 +200,29 @@ document.addEventListener("DOMContentLoaded", (event) => {
 
     /*=========== Initialize the engine =============*/
 
+    //removeIf(production)
+    if (DEBUG_TWEAK) {
+      function createInput(name, index, defaultValue) {
+        let
+          container = document.createElement("p")
+        , input = document.createElement("input")
+
+        input.type = "number";
+        input.onchange = evt => {
+          exports._setTweakValue(index, +input.value)
+        }
+        input.value = defaultValue
+        container.innerHTML = name + "<br>"
+        container.appendChild(input)
+        tv.appendChild(container)
+        exports._setTweakValue(index, defaultValue)
+      }
+      let i = 0
+      createInput("cameraChange", i++, 10)
+      createInput("cameraZ", i++, 350)
+    }
+    //endRemoveIf(production)
+
     const OFFSET_FUNC_RETURN = exports._preinit(HEAP_START)
     const SIZE_FUNC_RETURN = 100
     const wasm_funcReturnValues = new Int32Array(heap, OFFSET_FUNC_RETURN, SIZE_FUNC_RETURN)
@@ -207,7 +233,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
       const texBytes = new Uint8Array(heap, texOffset, texSize)
 
       //removeIf(production)
-      if (DEBUG_ENABLED) {
+      if (DEBUG_TEXTURES) {
         const canvas2d = document.createElement("canvas")
         t.appendChild(canvas2d) //`t` is an id for a div defined in HTML
         canvas2d.width = texW
