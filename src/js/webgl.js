@@ -202,7 +202,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
 
     //removeIf(production)
     if (DEBUG_TWEAK) {
-      function createInput(name, index, defaultValue) {
+      function createInput(name, index, defaultValue, step) {
         let
           container = document.createElement("p")
         , input = document.createElement("input")
@@ -212,6 +212,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
           exports._setTweakValue(index, +input.value)
         }
         input.value = defaultValue
+        input.step = step || 1.0
         container.innerHTML = name + "<br>"
         container.appendChild(input)
         tv.appendChild(container)
@@ -219,7 +220,6 @@ document.addEventListener("DOMContentLoaded", (event) => {
       }
       let i = 0
       createInput("cameraChange", i++, 10)
-      createInput("cameraZ", i++, 350)
     }
     //endRemoveIf(production)
 

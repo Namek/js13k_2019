@@ -21,4 +21,6 @@ Model3d &getModel_frog();
 Model3d &getModel_test();
 void renderModel3d(Model3d &model);
 
+float* renderFrog(float x, float y, float z);
+
 #endif

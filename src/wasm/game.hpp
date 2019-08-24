@@ -15,7 +15,6 @@ WASM_EXPORT void initGame();
 // to be used everywhere else, requires specifying entity id by hand
 #define getCmp(type, entityId) world.getComponent<type>(entityId)
 
-#define ref auto &
 
 DEF_COMPONENT(Transform)
   float x;           //centerX, pixels on screen

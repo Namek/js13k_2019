@@ -35,26 +35,15 @@ void renderModel3d(Model3d &model) {
     float v3y = ((float)vert[vi2 + vy0] + ((float)vert[vi2 + vy1] / 100.0f)) / s - vAlignY;
     float v3z = ((float)vert[vi2 + vz0] + ((float)vert[vi2 + vz1] / 100.0f)) / s - vAlignZ;
 
-    v1x = vertf[vi0/2 + 0];
-    v1y = vertf[vi0/2 + 1];
-    v1z = vertf[vi0/2 + 2];
-    v2x = vertf[vi1/2 + 0];
-    v2y = vertf[vi1/2 + 1];
-    v2z = vertf[vi1/2 + 2];
-    v3x = vertf[vi2/2 + 0];
-    v3y = vertf[vi2/2 + 1];
-    v3z = vertf[vi2/2 + 2];
-
-    if (!done) {
-      _l(triangles[i*3]);
-      _l(triangles[i*3+1]);
-      _l(triangles[i*3+2]);
-    }
-    if (!done && i == 1) {
-      _lstr("v1x", v1x);
-      _lstr("v1y", v1y);
-      _lstr("v1z", v1z);
-    }
+    // v1x = vertf[vi0 / 2 + 0];
+    // v1y = vertf[vi0 / 2 + 1];
+    // v1z = vertf[vi0 / 2 + 2];
+    // v2x = vertf[vi1 / 2 + 0];
+    // v2y = vertf[vi1 / 2 + 1];
+    // v2z = vertf[vi1 / 2 + 2];
+    // v3x = vertf[vi2 / 2 + 0];
+    // v3y = vertf[vi2 / 2 + 1];
+    // v3z = vertf[vi2 / 2 + 2];
 
     triangle(v1x, v1y, v1z, v2x, v2y, v2z, v3x, v3y, v3z);
   }
@@ -92,7 +81,6 @@ void renderModel3d(Model3d &model) {
     // v4y = vertf[vi3 / 2 + 1];
     // v4z = vertf[vi3 / 2 + 2];
 
-    // setColor(1, randomf(), randomf(), randomf());
     quad(v1x, v1y, v1z, v2x, v2y, v2z, v3x, v3y, v3z, v4x, v4y, v4z);
   }
 }

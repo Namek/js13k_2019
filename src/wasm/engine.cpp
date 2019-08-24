@@ -260,8 +260,8 @@ float *pushViewMatrix() {
 }
 
 void popViewMatrix() {
-  currentViewMatrixIndex += 1;
   flushBuffers();
+  currentViewMatrixIndex += 1;
 }
 
 float *pushModelMatrix() {
@@ -274,8 +274,8 @@ float *pushModelMatrix() {
 }
 
 void popModelMatrix() {
-  currentModelMatrixIndex += 1;
   flushBuffers();
+  currentModelMatrixIndex += 1;
 }
 
 
@@ -447,4 +447,9 @@ void texRect(int textureId, float x, float y, float z, float width, float height
       x, y + height, z, 0, vLen,
       x + width, y + height, z, uLen, vLen,
       x + width, y, z, uLen, 0);
+}
+
+float tweakValues[MAX_TWEAK_VALUES];
+void setTweakValue(int index, float value) {
+  tweakValues[index] = value;
 }

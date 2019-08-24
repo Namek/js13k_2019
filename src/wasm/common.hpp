@@ -11,6 +11,7 @@ typedef unsigned int uint;
 #include "utils/memory.hpp"
 
 #define WASM_EXPORT __attribute__((used))
+#define ref auto &
 
 extern "C" {
 extern void _l(int);     //logging

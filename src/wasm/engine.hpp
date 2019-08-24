@@ -9,8 +9,8 @@ WASM_EXPORT int preinit(int memoryBase);
 WASM_EXPORT void generateTextures();
 WASM_EXPORT void initEngine();
 WASM_EXPORT void render(float deltaTime);
-WASM_EXPORT bool onEvent(int eventType, int value);
 WASM_EXPORT void setTweakValue(int index, float value);
+WASM_EXPORT bool onEvent(int eventType, int value);
 
 extern float getCanvasWidth();
 extern float getCanvasHeight();
@@ -33,6 +33,10 @@ const int KEY_SPACE = 32;
 
 const float I = 1.0;
 const float O = 0.0;
+
+#define MAX_TWEAK_VALUES 10
+#define tw(index) tweakValues[index]
+extern float tweakValues[MAX_TWEAK_VALUES];
 
 void set16f(
     float *a,

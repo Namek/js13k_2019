@@ -12,13 +12,6 @@ GameState state;
 
 // };
 
-
-float tweakValues[10];
-void setTweakValue(int index, float value) {
-  tweakValues[index] = value;
-}
-#define tw(index) tweakValues[index]
-
 DEF_ENTITY_SYSTEM(UpdateVehiclePositions, A(Vehicle) | A(Transform))
 END_ENTITY_SYSTEM
 
@@ -114,8 +107,6 @@ bool onEvent(int eventType, int value) {
   return true;
 }
 
-
-
 // returns numbers:
 //  - number of vertices (same as number of colors)
 //  - number of indices
@@ -160,7 +151,6 @@ void render(float deltaTime) {
 
   const float z = zNear;
   if (1) {
-
     // layout here is:
     // - grass
     // - roadside
@@ -184,11 +174,11 @@ void render(float deltaTime) {
                0, 1, 0.04,
                0, 0.7, 0.04,
                0, 0.7, 0.04);
-    quad(
-        0, 0, z,
-        0, grassHeight, z,
-        w, grassHeight, z,
-        w, 0, z);
+    texQuad(TEXTURE_GRASS,
+            0, 0, z, 0, 0,
+            0, grassHeight, z, 0, 1,
+            w, grassHeight, z, w / grassHeight, 1,
+            w, 0, z, w / grassHeight, 0);
 
     // grass - bottom
     setColors4(1,
@@ -196,11 +186,11 @@ void render(float deltaTime) {
                0, 0.7, 0.04,
                0, 0.7, 0.04,
                0, 1, 0.04);
-    quad(
-        0, h, z,
-        w, h, z,
-        w, h - grassHeight, z,
-        0, h - grassHeight, z);
+    texQuad(TEXTURE_GRASS,
+        0, h, z, 0, 0,
+        w, h, z, 0, 1,
+        w, h - grassHeight, z, w / grassHeight, 1,
+        0, h - grassHeight, z, w / grassHeight, 0);
 
     float roadY = grassHeight + roadsideHeight;
 
@@ -216,7 +206,7 @@ void render(float deltaTime) {
     rect(0, roadY - roadsideHeight, z, w, roadsideHeight);
     rect(0, roadY + roadHeight, z, w, roadsideHeight);
 
-    // // black road
+    // black road
     setColorLeftToRight(1, 0.1, 0.1, 0.1, 0, 0, 0);
     rect(0, roadY, z, w, roadHeight);
 
@@ -233,29 +223,18 @@ void render(float deltaTime) {
   // draw frog, we know there's only one
   if (1) {
     auto *frog = world.getFirstEntityByAspect(A(Froggy));
-
     ref froggy = getCmp(Froggy, frog->id);
     ref transform = getCmp(Transform, frog->id);
     ref collider = world.getComponent<Collidable>(frog->id);
+
+    renderFrog(transform.x, transform.y, z);
+
+    // debug collider
     float
         x = transform.x - collider.width / 2,
         y = transform.y - collider.height / 2;
-
-    setColor(1, 1, 0, 0.4f);
-
-    auto matFrog = mat4_identity(pushModelMatrix());
-    float frogScale = 1;
-    mat4_translate(matFrog, matFrog, vec3_set(vec3Tmp, 10, 0,0));
-    mat4_scale(matFrog, matFrog, vec3_set(vec3Tmp, frogScale, frogScale, frogScale));
-    // mat4_rotateX(matFrog, matFrog, toRadian(-90));
-
     setColor(1, 1, 0, 0);
-    renderModel3d(getModel_frog());
-    setModelMatrix(matFrog);
-    popModelMatrix();
-
-    setColor(1, 1, 0, 0);
-    // rect(x, y, z, collider.width, collider.height);
+    rect(x, y, z, collider.width, collider.height);
   }
   // rect(100, 100, z, 300, 150);
 
