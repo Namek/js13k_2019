@@ -318,24 +318,21 @@ document.addEventListener("DOMContentLoaded", (event) => {
   
       gl_bindBuffer(gl_ARRAY_BUFFER, buffer_vertex)
       gl.bufferData(gl_ARRAY_BUFFER, wasm_vertexBuffer.subarray(0, vertexCount*VALUES_PER_VERTEX), gl_STATIC_DRAW)
-
       gl_bindBuffer(gl_ARRAY_BUFFER, buffer_normal)
       gl.bufferData(gl_ARRAY_BUFFER, wasm_normalBuffer.subarray(0, vertexCount*VALUES_PER_VERTEX), gl_STATIC_DRAW)
-
       gl_bindBuffer(gl_ELEMENT_ARRAY_BUFFER, buffer_index)
       gl.bufferData(gl_ELEMENT_ARRAY_BUFFER, wasm_indexBuffer.subarray(0, indexCount), gl_STATIC_DRAW)
 
+      // There is a choice between vertex-colored pixel and textured pixel.
+      // We always need to assign a buffer of non-vertex attributes as big as many vertices are sent to the WebGL.
+      // Thus, if we don't use a texture, let's just send the meaningless buffer anyway,
+      // so we don't have to have a separate shaders with and without texture support.
+      gl_bindBuffer(gl_ARRAY_BUFFER, buffer_color)
+      gl.bufferData(gl_ARRAY_BUFFER, wasm_colorBuffer.subarray(0, vertexCount*VALUES_PER_COLOR), gl_STATIC_DRAW)
+      gl_bindBuffer(gl_ARRAY_BUFFER, buffer_texCoords)
+      gl.bufferData(gl_ARRAY_BUFFER, wasm_texCoordsBuffer.subarray(0, vertexCount*VALUES_PER_TEXCOORD), gl_STATIC_DRAW)
       if (useTexture) {
-        const texCoordsCount = vertexCount;
-        gl_bindBuffer(gl_ARRAY_BUFFER, buffer_texCoords)
-        gl.bufferData(gl_ARRAY_BUFFER, wasm_texCoordsBuffer.subarray(0, texCoordsCount*VALUES_PER_TEXCOORD), gl_STATIC_DRAW)
-
         gl.bindTexture(gl_TEXTURE_2D, textures[currentTextureId])
-      }
-      else {
-        const colorCount = vertexCount
-        gl_bindBuffer(gl_ARRAY_BUFFER, buffer_color)
-        gl.bufferData(gl_ARRAY_BUFFER, wasm_colorBuffer.subarray(0, colorCount*VALUES_PER_COLOR), gl_STATIC_DRAW)
       }
 
       gl_bindBuffer(gl_ARRAY_BUFFER, null)
