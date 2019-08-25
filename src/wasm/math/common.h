@@ -26,9 +26,10 @@ int const MAT_SIZE_4 = 4 * 4;
 #define CLAMP255(a) (int)(CLAMP(a, 0, 255))
 #define CLAMP01(a) (CLAMP(a, 0f, 1f))
 
-extern float vec3Tmp[VEC_SIZE_3];
-extern float vec4Tmp[VEC_SIZE_4];
-extern float mat4Tmp[MAT_SIZE_4];
+extern float mathTmp[VEC_SIZE_3 + VEC_SIZE_4 + MAT_SIZE_4];
+#define vec3Tmp (float*)mathTmp
+#define vec4Tmp (float*)(mathTmp + VEC_SIZE_3)
+#define mat4Tmp (float*)(mathTmp + VEC_SIZE_3 + VEC_SIZE_4)
 
 float *mat4_free(float *a);
 float *mat4_create();

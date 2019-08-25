@@ -66,14 +66,14 @@ void initLevel(int levelIndex) {
     transform.y = BASE_GAME_HEIGHT - state.currentLevel.render.grassHeight / 2;
 
     ref collider = world.createComponent<Collidable>(frog.id);
-    collider.width = 40;
-    collider.height = 50;
+    collider.width = 30;
+    collider.height = 35;
   }
 }
-const char *bits = "bits";
+
 void initGame() {
-  int componentTypeSizes[] = COMPONENT_TYPE_SIZES;
-  initEcsWorld(state.ecsWorld, componentTypeSizes, COMPONENT_TYPE_COUNT);
+  int sizes[] = COMPONENT_TYPE_SIZES;
+  initEcsWorld(state.ecsWorld, sizes, COMPONENT_TYPE_COUNT);
   vec3_set(state.camera.pos, 0, 0, 0);
   vec3_set(state.camera.dir, 0, 0, -1);
 
