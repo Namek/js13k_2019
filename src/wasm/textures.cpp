@@ -1,7 +1,5 @@
 #include "textures.hpp"
 
-extern int OFFSET_FUNC_RETURN;
-extern int SIZE_FUNC_RETURN;
 
 struct TextureInfo {
   int width;
@@ -19,7 +17,7 @@ void grass(int *tex);
 
 // call it before initEngine()
 void generateTextures() {
-  int textureStart = align(OFFSET_FUNC_RETURN + SIZE_FUNC_RETURN + 1 + 2, 4); //make some space for info about textures
+  int textureStart = align((int)((char*)engineState.funcReturn + engineState.funcReturn_size + 1 + 2), 4); //make some space for info about textures
   int *tex = (int *)textureStart;
 
   SEND_TEXTURE(checkerboard)

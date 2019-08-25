@@ -135,6 +135,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
     /*============== Defining the geometry ==============*/
 
     const buffer_vertex = gl_createBuffer()
+    const buffer_normal = gl_createBuffer()
     const buffer_index = gl_createBuffer()
     const buffer_color = gl_createBuffer()
     const buffer_texCoords = gl_createBuffer()
@@ -145,15 +146,18 @@ document.addEventListener("DOMContentLoaded", (event) => {
     // Vertex shader source code
     const vertCode =
     'attribute vec3 pos;'+
+    'attribute vec3 nor;'+
     'attribute vec4 color;'+
     'attribute vec2 texC;'+
     'uniform mat4 projMat;'+
     'uniform mat4 viewMat;'+
     'uniform mat4 mdlMat;'+
+    'varying vec3 vNor;'+
     'varying vec4 vColor;'+
     'varying vec2 vTex;'+
     'void main(void) {' +
       'gl_Position = projMat * viewMat * mdlMat * vec4(pos, 1.0);' +
+      'vNor = nor;'+
       'vColor = color;'+
       'vTex = texC;'+
     '}'
@@ -162,6 +166,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
     
     const fragCode =
       'precision mediump float;'+
+      'varying vec3 vNor;'+
       'varying vec4 vColor;'+
       'varying vec2 vTex;'+
       'uniform sampler2D tex;'+
@@ -173,6 +178,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
         'else {'+
           'gl_FragColor = vColor;'+
         '}'+
+        // TODO Phong lightning model based on normal vertex
       '}'
   
     const shaderProgram = linkShaders(gl, vertCode, fragCode)
@@ -186,6 +192,11 @@ document.addEventListener("DOMContentLoaded", (event) => {
     const aPos = gl.getAttribLocation(shaderProgram, "pos")
     gl.vertexAttribPointer(aPos, 3, gl_FLOAT, false, 0, 0)
     gl.enableVertexAttribArray(aPos)
+
+    gl_bindBuffer(gl_ARRAY_BUFFER, buffer_normal)
+    const aNormal = gl.getAttribLocation(shaderProgram, "nor")
+    gl.vertexAttribPointer(aNormal, 3, gl_FLOAT, false, 0, 0)
+    gl.enableVertexAttribArray(aNormal)
 
     gl_bindBuffer(gl_ARRAY_BUFFER, buffer_color)
     const aColor = gl.getAttribLocation(shaderProgram, "color")
@@ -262,19 +273,21 @@ document.addEventListener("DOMContentLoaded", (event) => {
     const VALUES_PER_TEXCOORD = 2
     const SIZE_RENDER_BUFFER_COLOR = wasm_funcReturnValues[2]
     const SIZE_RENDER_BUFFER_VERTEX = wasm_funcReturnValues[3]
-    const SIZE_RENDER_BUFFER_INDEX = wasm_funcReturnValues[4]
-    const SIZE_RENDER_BUFFER_TEXCOORDS = wasm_funcReturnValues[5]
+    const SIZE_RENDER_BUFFER_NORMAL = wasm_funcReturnValues[4]
+    const SIZE_RENDER_BUFFER_INDEX = wasm_funcReturnValues[5]
+    const SIZE_RENDER_BUFFER_TEXCOORDS = wasm_funcReturnValues[6]
     const NUM_MATRIX4 = 16
-  
-    const OFFSET_RENDER_BUFFER_COLOR = wasm_funcReturnValues[6]
-    const OFFSET_RENDER_BUFFER_VERTEX = wasm_funcReturnValues[7]
-    const OFFSET_RENDER_BUFFER_INDEX = wasm_funcReturnValues[8]
-    const OFFSET_RENDER_BUFFER_TEXCOORDS = wasm_funcReturnValues[9]
-    const OFFSET_PROJECTION_MATRIX = wasm_funcReturnValues[10]
-    const OFFSET_VIEW_MATRIX = wasm_funcReturnValues[11]
-    const OFFSET_MODEL_MATRIX = wasm_funcReturnValues[12]
 
-    const OFFSET_DYNAMIC_MEMORY = wasm_funcReturnValues[13]
+    const OFFSET_RENDER_BUFFER_COLOR = wasm_funcReturnValues[7]
+    const OFFSET_RENDER_BUFFER_VERTEX = wasm_funcReturnValues[8]
+    const OFFSET_RENDER_BUFFER_INDEX = wasm_funcReturnValues[9]
+    const OFFSET_RENDER_BUFFER_TEXCOORDS = wasm_funcReturnValues[10]
+    const OFFSET_RENDER_BUFFER_NORMAL = wasm_funcReturnValues[11]
+    const OFFSET_PROJECTION_MATRIX = wasm_funcReturnValues[12]
+    const OFFSET_VIEW_MATRIX = wasm_funcReturnValues[13]
+    const OFFSET_MODEL_MATRIX = wasm_funcReturnValues[14]
+
+    const OFFSET_DYNAMIC_MEMORY = wasm_funcReturnValues[15]
     dynamicMemoryOffset = dynamicMemoryBreak = OFFSET_DYNAMIC_MEMORY
 
     const f32buffer = (offset, size) => new Float32Array(heap, offset, size)
@@ -282,6 +295,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
     const wasm_vertexBuffer = f32buffer(OFFSET_RENDER_BUFFER_VERTEX, SIZE_RENDER_BUFFER_VERTEX/4)
     const wasm_indexBuffer = new Int32Array(heap, OFFSET_RENDER_BUFFER_INDEX, SIZE_RENDER_BUFFER_INDEX/4)
     const wasm_texCoordsBuffer = f32buffer(OFFSET_RENDER_BUFFER_TEXCOORDS, SIZE_RENDER_BUFFER_TEXCOORDS/4)
+    const wasm_normalBuffer = f32buffer(OFFSET_RENDER_BUFFER_NORMAL, SIZE_RENDER_BUFFER_NORMAL/4)
     const wasm_projMatrix = f32buffer(OFFSET_PROJECTION_MATRIX, NUM_MATRIX4)
     const wasm_viewMatrix = f32buffer(OFFSET_VIEW_MATRIX, NUM_MATRIX4)
     const wasm_modelMatrix = f32buffer(OFFSET_MODEL_MATRIX, NUM_MATRIX4)
@@ -304,6 +318,10 @@ document.addEventListener("DOMContentLoaded", (event) => {
   
       gl_bindBuffer(gl_ARRAY_BUFFER, buffer_vertex)
       gl.bufferData(gl_ARRAY_BUFFER, wasm_vertexBuffer.subarray(0, vertexCount*VALUES_PER_VERTEX), gl_STATIC_DRAW)
+
+      gl_bindBuffer(gl_ARRAY_BUFFER, buffer_normal)
+      gl.bufferData(gl_ARRAY_BUFFER, wasm_normalBuffer.subarray(0, vertexCount*VALUES_PER_VERTEX), gl_STATIC_DRAW)
+
       gl_bindBuffer(gl_ELEMENT_ARRAY_BUFFER, buffer_index)
       gl.bufferData(gl_ELEMENT_ARRAY_BUFFER, wasm_indexBuffer.subarray(0, indexCount), gl_STATIC_DRAW)
 

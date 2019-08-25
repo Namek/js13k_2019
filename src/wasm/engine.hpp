@@ -5,7 +5,7 @@
 #include "math/common.h"
 
 extern "C" {
-WASM_EXPORT int preinit(int memoryBase);
+WASM_EXPORT int *preinit(void *memoryBase);
 WASM_EXPORT void generateTextures();
 WASM_EXPORT void initEngine();
 WASM_EXPORT void render(float deltaTime);
@@ -19,6 +19,37 @@ extern void triggerDrawCall();
 extern void sendTexture(int ptr, int width, int height);
 }
 
+// clang-format off
+struct EngineState {
+  int
+   *funcReturn
+  , funcReturn_size
+  ,*renderIndexBuffer
+  , vertexCount
+  , indexCount
+  , currentTextureId
+  , currentViewMatrixIndex
+  , currentModelMatrixIndex
+  ;
+
+  float
+    *renderColorBuffer
+  , *renderVertexBuffer
+  , *renderTexCoordsBuffer
+  , *renderNormalBuffer
+  , *projectionMatrix
+  , *viewMatrix
+  , *modelMatrix
+
+  // internal memory
+  , *currentColor
+  ;
+
+  float tweakValues[10];
+};
+extern EngineState engineState;
+// clang-format on
+
 void beginFrame();
 void endFrame();
 void flushBuffers();
@@ -31,19 +62,7 @@ const int KEY_RIGHT = 39;
 const int KEY_DOWN = 40;
 const int KEY_SPACE = 32;
 
-const float I = 1.0;
-const float O = 0.0;
-
-#define MAX_TWEAK_VALUES 10
-#define tw(index) tweakValues[index]
-extern float tweakValues[MAX_TWEAK_VALUES];
-
-void set16f(
-    float *a,
-    float f0, float f1, float f2, float f3,
-    float f4, float f5, float f6, float f7,
-    float f8, float f9, float f10, float f11,
-    float f12, float f13, float f14, float f15);
+#define tw(index) engineState.tweakValues[index]
 
 float *getProjectionMatrix();
 float *getViewMatrix();
@@ -70,6 +89,8 @@ void setColorLeftToRight(
     float alpha,
     float r1, float g1, float b1,
     float r2, float g2, float b2);
+
+void vertex(float x, float y, float z, float nx, float ny, float nz);
 
 void triangle(
     float v1x, float v1y, float v1z,
