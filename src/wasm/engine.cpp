@@ -243,8 +243,15 @@ void popModelMatrix() {
   e.currentModelMatrixIndex += 1;
 }
 
+// set the vertex normal for all other functions, like vertex(), tex/triangle(), tex/quad(), etc.
+void setCurrentVertexNormal(float x, float y, float z) {
+  e.currentVertexNormal[0] = x;
+  e.currentVertexNormal[1] = y;
+  e.currentVertexNormal[2] = z;
+}
+
 // does not reset the texture
-void vertex(float x, float y, float z, float nx, float ny, float nz) {
+int vertex(float x, float y, float z) {
   int vertexCount = e.vertexCount;
 
   int i = vertexCount * VALUES_PER_VERTEX;
@@ -252,9 +259,9 @@ void vertex(float x, float y, float z, float nx, float ny, float nz) {
   e.renderVertexBuffer[i + 1] = y;
   e.renderVertexBuffer[i + 2] = z;
 
-  e.renderNormalBuffer[i] = nx;
-  e.renderNormalBuffer[i + 1] = ny;
-  e.renderNormalBuffer[i + 2] = nz;
+  for (int j = 0; j < 3; ++j) {
+    e.renderNormalBuffer[i + j] = e.currentVertexNormal[j];
+  }
 
   i = vertexCount * VALUES_PER_COLOR;
   int j = 0;
@@ -262,9 +269,12 @@ void vertex(float x, float y, float z, float nx, float ny, float nz) {
     e.renderColorBuffer[i + j] = e.currentColor[j];
   }
 
-  e.renderIndexBuffer[e.indexCount] = vertexCount;
-
   e.vertexCount += 1;
+  return vertexCount;
+}
+
+void index(int i) {
+  e.renderIndexBuffer[e.indexCount] = i;
   e.indexCount += 1;
 }
 
@@ -287,7 +297,11 @@ void triangle(
   e.renderVertexBuffer[i + 7] = v3y;
   e.renderVertexBuffer[i + 8] = v3z;
 
-  // TODO put normals
+  for (int j = 0; j < 3; ++j) {
+    for (int k = 0; k < 3; ++k) {
+      e.renderNormalBuffer[i + j * 3 + k] = e.currentVertexNormal[k];
+    }
+  }
 
   i = vertexCount * VALUES_PER_COLOR;
   int j = 0;
@@ -296,9 +310,9 @@ void triangle(
   }
 
   i = e.indexCount;
-  e.renderIndexBuffer[i] = vertexCount;
-  e.renderIndexBuffer[i + 1] = vertexCount + 1;
-  e.renderIndexBuffer[i + 2] = vertexCount + 2;
+  for (int j = 0; j < 3; ++j) {
+    e.renderIndexBuffer[i + j] = vertexCount + j;
+  }
 
   e.vertexCount += 3;
   e.indexCount += 3;
@@ -327,7 +341,11 @@ void texTriangle(
   e.renderVertexBuffer[i + 7] = v3y;
   e.renderVertexBuffer[i + 8] = v3z;
 
-  // TODO put normals
+  for (int j = 0; j < 3; ++j) {
+    for (int k = 0; k < 3; ++k) {
+      e.renderNormalBuffer[i + j * 3 + k] = e.currentVertexNormal[k];
+    }
+  }
 
   i = vertexCount * VALUES_PER_TEXCOORD;
   e.renderTexCoordsBuffer[i] = u1;
@@ -337,9 +355,9 @@ void texTriangle(
   e.renderTexCoordsBuffer[i + 4] = u3;
   e.renderTexCoordsBuffer[i + 5] = v3;
 
-  e.renderIndexBuffer[indexCount] = vertexCount;
-  e.renderIndexBuffer[indexCount + 1] = vertexCount + 1;
-  e.renderIndexBuffer[indexCount + 2] = vertexCount + 2;
+  for (int j = 0; j < 3; ++j) {
+    e.renderIndexBuffer[indexCount + j] = vertexCount + j;
+  }
 
   e.vertexCount += 3;
   e.indexCount += 3;
@@ -361,13 +379,16 @@ void quad(
   e.renderVertexBuffer[i + 1] = v4y;
   e.renderVertexBuffer[i + 2] = v4z;
 
-  // TODO put normals
+  for (int j = 0; j < 4; ++j) {
+    for (int k = 0; k < 3; ++k) {
+      e.renderNormalBuffer[i + j * 3 + k] = e.currentVertexNormal[k];
+    }
+  }
 
   i = vertexCount * VALUES_PER_COLOR;
-  e.renderColorBuffer[i] = e.currentColor[12];
-  e.renderColorBuffer[i + 1] = e.currentColor[13];
-  e.renderColorBuffer[i + 2] = e.currentColor[14];
-  e.renderColorBuffer[i + 3] = e.currentColor[15];
+  for (int j = 0; j < 4; ++j) {
+    e.renderColorBuffer[i + j] = e.currentColor[12 + j];
+  }
 
   i = e.indexCount;
   e.renderIndexBuffer[i] = vertexCount - 1;
@@ -398,7 +419,11 @@ void texQuad(
   e.renderVertexBuffer[i + 1] = v4y;
   e.renderVertexBuffer[i + 2] = v4z;
 
-  // TODO put normals
+  for (int j = 0; j < 4; ++j) {
+    for (int k = 0; k < 3; ++k) {
+      e.renderNormalBuffer[i + j * 3 + k] = e.currentVertexNormal[k];
+    }
+  }
 
   i = vertexCount * VALUES_PER_TEXCOORD;
   e.renderTexCoordsBuffer[i] = u4;
