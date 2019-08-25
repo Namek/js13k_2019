@@ -245,30 +245,24 @@ void popModelMatrix() {
 
 // does not reset the texture
 void vertex(float x, float y, float z, float nx, float ny, float nz) {
-  float *vertices = e.renderVertexBuffer;
-  float *normals = e.renderNormalBuffer;
-  float *colors = e.renderColorBuffer;
-  int *indices = e.renderIndexBuffer;
-  float *currentColor = e.currentColor;
-
   int vertexCount = e.vertexCount;
 
   int i = vertexCount * VALUES_PER_VERTEX;
-  vertices[i] = x;
-  vertices[i + 1] = y;
-  vertices[i + 2] = z;
+  e.renderVertexBuffer[i] = x;
+  e.renderVertexBuffer[i + 1] = y;
+  e.renderVertexBuffer[i + 2] = z;
 
-  normals[i] = nx;
-  normals[i + 1] = ny;
-  normals[i + 2] = nz;
+  e.renderNormalBuffer[i] = nx;
+  e.renderNormalBuffer[i + 1] = ny;
+  e.renderNormalBuffer[i + 2] = nz;
 
   i = vertexCount * VALUES_PER_COLOR;
   int j = 0;
   for (j = 0; j < 4; j += 1) {
-    colors[i + j] = currentColor[j];
+    e.renderColorBuffer[i + j] = e.currentColor[j];
   }
 
-  indices[e.indexCount] = vertexCount;
+  e.renderIndexBuffer[e.indexCount] = vertexCount;
 
   e.vertexCount += 1;
   e.indexCount += 1;
@@ -280,34 +274,31 @@ void triangle(
     float v3x, float v3y, float v3z) {
   setTexture(-1);
 
-  float *vertices = e.renderVertexBuffer;
-  float *colors = e.renderColorBuffer;
-  float *normals = e.renderNormalBuffer;
-  float *currentColor = e.currentColor;
-  int *indices = e.renderIndexBuffer;
   int vertexCount = e.vertexCount;
 
   int i = vertexCount * VALUES_PER_VERTEX;
-  vertices[i] = v1x;
-  vertices[i + 1] = v1y;
-  vertices[i + 2] = v1z;
-  vertices[i + 3] = v2x;
-  vertices[i + 4] = v2y;
-  vertices[i + 5] = v2z;
-  vertices[i + 6] = v3x;
-  vertices[i + 7] = v3y;
-  vertices[i + 8] = v3z;
+  e.renderVertexBuffer[i] = v1x;
+  e.renderVertexBuffer[i + 1] = v1y;
+  e.renderVertexBuffer[i + 2] = v1z;
+  e.renderVertexBuffer[i + 3] = v2x;
+  e.renderVertexBuffer[i + 4] = v2y;
+  e.renderVertexBuffer[i + 5] = v2z;
+  e.renderVertexBuffer[i + 6] = v3x;
+  e.renderVertexBuffer[i + 7] = v3y;
+  e.renderVertexBuffer[i + 8] = v3z;
+
+  // TODO put normals
 
   i = vertexCount * VALUES_PER_COLOR;
   int j = 0;
   for (j = 0; j < 12; j += 1) {
-    colors[i + j] = currentColor[j];
+    e.renderColorBuffer[i + j] = e.currentColor[j];
   }
 
   i = e.indexCount;
-  indices[i] = vertexCount;
-  indices[i + 1] = vertexCount + 1;
-  indices[i + 2] = vertexCount + 2;
+  e.renderIndexBuffer[i] = vertexCount;
+  e.renderIndexBuffer[i + 1] = vertexCount + 1;
+  e.renderIndexBuffer[i + 2] = vertexCount + 2;
 
   e.vertexCount += 3;
   e.indexCount += 3;
@@ -320,36 +311,35 @@ void texTriangle(
     float v3x, float v3y, float v3z, float u3, float v3) {
   setTexture(textureId);
 
-  float *vertices = e.renderVertexBuffer;
-  float *texCoords = e.renderTexCoordsBuffer;
   float *normals = e.renderNormalBuffer;
-  int *indices = e.renderIndexBuffer;
 
   int vertexCount = e.vertexCount;
   int indexCount = e.indexCount;
 
   int i = vertexCount * VALUES_PER_VERTEX;
-  vertices[i] = v1x;
-  vertices[i + 1] = v1y;
-  vertices[i + 2] = v1z;
-  vertices[i + 3] = v2x;
-  vertices[i + 4] = v2y;
-  vertices[i + 5] = v2z;
-  vertices[i + 6] = v3x;
-  vertices[i + 7] = v3y;
-  vertices[i + 8] = v3z;
+  e.renderVertexBuffer[i] = v1x;
+  e.renderVertexBuffer[i + 1] = v1y;
+  e.renderVertexBuffer[i + 2] = v1z;
+  e.renderVertexBuffer[i + 3] = v2x;
+  e.renderVertexBuffer[i + 4] = v2y;
+  e.renderVertexBuffer[i + 5] = v2z;
+  e.renderVertexBuffer[i + 6] = v3x;
+  e.renderVertexBuffer[i + 7] = v3y;
+  e.renderVertexBuffer[i + 8] = v3z;
+
+  // TODO put normals
 
   i = vertexCount * VALUES_PER_TEXCOORD;
-  texCoords[i] = u1;
-  texCoords[i + 1] = v1;
-  texCoords[i + 2] = u2;
-  texCoords[i + 3] = v2;
-  texCoords[i + 4] = u3;
-  texCoords[i + 5] = v3;
+  e.renderTexCoordsBuffer[i] = u1;
+  e.renderTexCoordsBuffer[i + 1] = v1;
+  e.renderTexCoordsBuffer[i + 2] = u2;
+  e.renderTexCoordsBuffer[i + 3] = v2;
+  e.renderTexCoordsBuffer[i + 4] = u3;
+  e.renderTexCoordsBuffer[i + 5] = v3;
 
-  indices[indexCount] = vertexCount;
-  indices[indexCount + 1] = vertexCount + 1;
-  indices[indexCount + 2] = vertexCount + 2;
+  e.renderIndexBuffer[indexCount] = vertexCount;
+  e.renderIndexBuffer[indexCount + 1] = vertexCount + 1;
+  e.renderIndexBuffer[indexCount + 2] = vertexCount + 2;
 
   e.vertexCount += 3;
   e.indexCount += 3;
@@ -364,28 +354,25 @@ void quad(
   triangle(v1x, v1y, v1z, v2x, v2y, v2z, v3x, v3y, v3z);
 
   //3,4,1
-  float *vertices = e.renderVertexBuffer;
-  float *colors = e.renderColorBuffer;
-  int *indices = e.renderIndexBuffer;
-  float *currentColor = e.currentColor;
-
   int vertexCount = e.vertexCount;
 
   int i = vertexCount * VALUES_PER_VERTEX;
-  vertices[i] = v4x;
-  vertices[i + 1] = v4y;
-  vertices[i + 2] = v4z;
+  e.renderVertexBuffer[i] = v4x;
+  e.renderVertexBuffer[i + 1] = v4y;
+  e.renderVertexBuffer[i + 2] = v4z;
+
+  // TODO put normals
 
   i = vertexCount * VALUES_PER_COLOR;
-  colors[i] = currentColor[12];
-  colors[i + 1] = currentColor[13];
-  colors[i + 2] = currentColor[14];
-  colors[i + 3] = currentColor[15];
+  e.renderColorBuffer[i] = e.currentColor[12];
+  e.renderColorBuffer[i + 1] = e.currentColor[13];
+  e.renderColorBuffer[i + 2] = e.currentColor[14];
+  e.renderColorBuffer[i + 3] = e.currentColor[15];
 
   i = e.indexCount;
-  indices[i] = vertexCount - 1;
-  indices[i + 1] = vertexCount;
-  indices[i + 2] = vertexCount - 3;
+  e.renderIndexBuffer[i] = vertexCount - 1;
+  e.renderIndexBuffer[i + 1] = vertexCount;
+  e.renderIndexBuffer[i + 2] = vertexCount - 3;
 
   e.vertexCount += 1;
   e.indexCount += 3;
@@ -404,24 +391,23 @@ void texQuad(
               v3x, v3y, v3z, u3, v3);
 
   //3,4,1
-  float *vertices = e.renderVertexBuffer;
-  float *texCoords = e.renderTexCoordsBuffer;
-  int *indices = e.renderIndexBuffer;
   int vertexCount = e.vertexCount;
 
   int i = vertexCount * VALUES_PER_VERTEX;
-  vertices[i] = v4x;
-  vertices[i + 1] = v4y;
-  vertices[i + 2] = v4z;
+  e.renderVertexBuffer[i] = v4x;
+  e.renderVertexBuffer[i + 1] = v4y;
+  e.renderVertexBuffer[i + 2] = v4z;
+
+  // TODO put normals
 
   i = vertexCount * VALUES_PER_TEXCOORD;
-  texCoords[i] = u4;
-  texCoords[i + 1] = v4;
+  e.renderTexCoordsBuffer[i] = u4;
+  e.renderTexCoordsBuffer[i + 1] = v4;
 
   i = e.indexCount;
-  indices[i] = vertexCount - 1;
-  indices[i + 1] = vertexCount;
-  indices[i + 2] = vertexCount - 3;
+  e.renderIndexBuffer[i] = vertexCount - 1;
+  e.renderIndexBuffer[i + 1] = vertexCount;
+  e.renderIndexBuffer[i + 2] = vertexCount - 3;
 
   e.vertexCount += 1;
   e.indexCount += 3;
