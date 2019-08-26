@@ -31,7 +31,7 @@ var regular = chalk.white;
 
 
 var isProduction = false
-const approximatedSizeReductionOnProductionRemovals = 784
+const approximatedSizeReductionOnProductionRemovals = 784 + 38/*size of trap_mode=clamp for single call of _l() or _lstr()*/
 
 
 gulp.task('watch-only', (done) => {
@@ -99,7 +99,7 @@ gulp.task('build-cpp', (done) => {
 
 	console.log("Compiling: " + cppFiles.join(" "))
 
-	if (exec('em++', args(`
+	let compilerOpts = args(`
 		${cppFiles.join(" ")}
 		-o ${destPath}
 		--std=c++14
@@ -110,7 +110,15 @@ gulp.task('build-cpp', (done) => {
 		-s ONLY_MY_CODE=1
 		-s "EXPORTED_FUNCTIONS=[${exportedFunctions}]"
 		-s TOTAL_MEMORY=16MB
-	`)).status == 0) {
+	`)
+
+	if (!isProduction) {
+		// Useful for debugging.
+		// it adds around 50 bytes for 2 calls to _l() that takes int but we pass float.
+		compilerOpts.push(`-s "BINARYEN_TRAP_MODE='clamp'"`)
+	}
+
+	if (exec('em++', compilerOpts).status == 0) {
 		// exec('wasm2wat', args(`
 		// 	${destPath}
 		// 	--output=${destPath}.wat
