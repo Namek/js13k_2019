@@ -227,6 +227,8 @@ void render(float deltaTime) {
     ref collider = world.getComponent<Collider>(frog->id);
 
     renderFrog(transform.x, transform.y, z);
+
+    setColor(1, 1, 0, 0);
     debugRect(transform, collider, z);
   }
 
@@ -238,6 +240,11 @@ void render(float deltaTime) {
       ref c = getCmpE(Collider);
       ref lane = getLaneForVehicle(state.currentLevel, v);
 
+      // debug: car color by type
+      if (v.paramsStatic->type == FastCar)
+        setColor(1, 1, 0, 0);
+      else
+        setColor(1, 0, 0, 1);
       debugRect(t, c, z);
 
       // debug: front of car

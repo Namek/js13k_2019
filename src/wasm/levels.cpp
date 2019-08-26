@@ -1,5 +1,32 @@
 #include "game.hpp"
 
+VehicleStaticParams &setupVehicleStaticParams(
+    VehicleStaticParams &vs,
+    VehicleType type,
+    float maxSlowdownFactor,
+    float maxSpeedupFactor,
+    bool playerCanChangeLane,
+    float maxSpeed) {
+  vs.type = type;
+  vs.maxSlowdownFactor = maxSlowdownFactor;
+  vs.maxSpeedupFactor = maxSpeedupFactor;
+  vs.playerCanChangeLane = playerCanChangeLane;
+  vs.maxSpeed = maxSpeed;
+
+  return vs;
+}
+
+VehicleConfig *newVehicleConfig(LevelParams &levelParams, VehicleStaticParams *paramsStatic, int laneIndex, float maxSpeedPercent, float onLanePosPercent) {
+  auto vc = (VehicleConfig *)levelParams.vehicles.createPtr();
+  vc->paramsStatic = paramsStatic;
+  vc->paramsDynamicInitial.changingLaneProgress = 0;
+  vc->paramsDynamicInitial.laneIndex_target = laneIndex;
+  vc->paramsDynamicInitial.laneIndex_current = laneIndex;
+  vc->paramsDynamicInitial.onLanePosPercent = onLanePosPercent;
+  vc->paramsDynamicInitial.speed = vc->paramsStatic->maxSpeed * maxSpeedPercent;
+  return vc;
+}
+
 void initLevel(int levelIndex) {
   // cleanup after previous level
   for (int i = 0; i < state.levelGarbage.size; ++i) {
@@ -20,7 +47,7 @@ void initLevel(int levelIndex) {
   switch (levelIndex) {
   default:
   case 0:
-    levelParams.froggyXPosition = 0.2;
+    levelParams.froggyXPosition = 0.8;
     levelParams.froggyThinkingTime = 1.0f;
     levelParams.maxLaneSpeed = 80;
 
@@ -34,31 +61,17 @@ void initLevel(int levelIndex) {
 
     // static params
     GC_LEVEL(vehiclesStatic = Allocate(VehicleStaticParams, 2));
-    ref vs0 = vehiclesStatic[0];
-    vs0.type = NormalCar;
-    vs0.maxSlowdownFactor = 0.4;
-    vs0.maxSpeedupFactor = 0.4;
-    vs0.playerCanChangeLane = true;
-    vs0.maxSpeed = 0.01;
-    ref vs1 = vehiclesStatic[1];
-    vs1.type = FastCar;
-    vs1.maxSlowdownFactor = 0.7;
-    vs1.maxSpeedupFactor = 0.7;
-    vs1.playerCanChangeLane = true;
-    vs1.maxSpeed = vs0.maxSpeed * 3;
+
+    ref normalCar = setupVehicleStaticParams(vehiclesStatic[0], NormalCar, 0.4, 0.4, true, 0.01);
+    ref fastCar =  setupVehicleStaticParams(vehiclesStatic[1], FastCar, 0.7, 0.7, true, normalCar.maxSpeed * 3);
 
     // all vehicles on level
     levelParams.vehicles.init(sizeof(VehicleConfig));
-
-    auto vc0 = (VehicleConfig *)levelParams.vehicles.createPtr();
-    vc0->paramsStatic = vehiclesStatic + 0;
-    vc0->paramsDynamicInitial.changingLaneProgress = 0;
-    uint laneIndex = 0;
-    vc0->paramsDynamicInitial.laneIndex_target = laneIndex;
-    vc0->paramsDynamicInitial.laneIndex_current = laneIndex;
-    vc0->paramsDynamicInitial.onLanePosPercent = 0.4;
-    float maxSpeedFactor = 0.8;
-    vc0->paramsDynamicInitial.speed = vc0->paramsStatic->maxSpeed * maxSpeedFactor;
+    newVehicleConfig(levelParams, vehiclesStatic + 0, 0, 0.8, 0.4);
+    newVehicleConfig(levelParams, vehiclesStatic + 0, 0, 0.8, 0.2);
+    newVehicleConfig(levelParams, vehiclesStatic + 1, 1, 0.8, 0.7);
+    newVehicleConfig(levelParams, vehiclesStatic + 0, 2, 0.8, 0.1);
+    newVehicleConfig(levelParams, vehiclesStatic + 1, 3, 1, 0.4);
   }
 
   state.currentLevel.params = levelParams;
@@ -102,7 +115,7 @@ void initLevel(int levelIndex) {
       v.paramsConfiguredByPlayer.speedChangeFactor = 0;
       // v.paramsConfiguredByPlayer.laneChange = 0;
 
-      vc.height = 70;
+      vc.height = state.currentLevel.params.laneHeight * 0.85f;
       vc.width = 120;
 
       // transform will be set up automatically by system

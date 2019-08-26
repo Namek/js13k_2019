@@ -20,9 +20,9 @@ float calcCenterYForLane(int laneIndex) {
   y -= level.params.laneHeight / 2;
 
   // if we want other lane then jump every whole lane (including the gap)
-  float halfLane = level.params.laneHeight / 2 + level.params.lanesGap;
+  float halfLane = level.params.laneHeight / 2 + level.params.lanesGap / 2;
   for (int i = 0; i < laneIndex; ++i) {
-    y -= halfLane;
+    y -= halfLane*2;
   }
 
   if (laneIndex == level.params.laneCount) {
