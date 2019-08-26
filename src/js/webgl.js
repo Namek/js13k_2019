@@ -236,6 +236,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
       }
       let i = 0
       createInput("cameraChange", i++, 10)
+      createInput("game phase", i++, 0)//3==Simulate
     }
     //endRemoveIf(production)
 

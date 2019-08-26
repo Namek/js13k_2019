@@ -27,7 +27,7 @@ DEF_ENTITY_SYSTEM(SimulateVehicle, A(Vehicle))
 
   // update vertical position (changing lanes)
   if (v.paramsDynamicCurrent.laneIndex_target != v.paramsDynamicCurrent.laneIndex_current) {
-
+    // TODO
     // v.paramsDynamicCurrent.changingLaneProgress
   }
 END_ENTITY_SYSTEM
@@ -137,14 +137,16 @@ void render(float deltaTime) {
   EcsWorld &world = state.ecsWorld;
   world.deltaTime = deltaTime;
 
-  if (state.phase == Simulate) {
+  Phase phase = (Phase)(int)tw(1);// state.phase;
+
+  if (phase == Simulate) {
     SimulateVehicle(world);
     SimulateFroggy(world);
     CheckCollisions(world);
   }
-  else if (state.phase == Rewind) {
+  else if (phase == Rewind) {
   }
-  else if (state.phase == Playing) {
+  else if (phase == Playing) {
   }
   UpdateVehiclePositionForRender(world);
 
