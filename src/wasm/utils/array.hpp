@@ -34,7 +34,7 @@ struct Array {
   int elementSize;
 
   public:
-  int size;
+  uint size;
 
   // TODO implement dynamic resize and handle holes after removed elements
 

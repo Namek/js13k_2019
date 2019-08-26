@@ -3,91 +3,83 @@
 #include "textures.hpp"
 #include "models/models.hpp"
 
-#define BOTTOM_UI_HEIGHT 100
-#define BASE_GAME_WIDTH 1200
-#define BASE_GAME_HEIGHT (675 - BOTTOM_UI_HEIGHT)
 GameState state;
 
-// VehicleParams allVehicleParams[]= {
+DEF_ENTITY_SYSTEM(SimulateVehicle, A(Vehicle))
+  ref v = getCmpE(Vehicle);
 
-// };
+  // change speed due to player's settings
+  ref speedChangeFactor = v.paramsConfiguredByPlayer.speedChangeFactor;
+  if (speedChangeFactor != 0) {
+    v.paramsDynamicCurrent.speed += speedChangeFactor * deltaTime * deltaTime;
+    v.paramsDynamicCurrent.speed = CLAMP(v.paramsDynamicCurrent.speed, 0, v.paramsStatic->maxSpeed);
+  }
 
-DEF_ENTITY_SYSTEM(UpdateVehiclePositions, A(Vehicle) | A(Transform))
+  // TODO in future, we should simulate some more physics instead of updating horz/vert separately
+
+  // update horizontal position
+  ref lane = getLaneForVehicle(state.currentLevel, v);
+  float diffX = v.paramsDynamicCurrent.speed * deltaTime * lane.horzDir;
+  v.paramsDynamicCurrent.onLanePosPercent -= diffX;
+
+  // foresee to decide if needs changing lanes
+  // TODO
+
+  // update vertical position (changing lanes)
+  if (v.paramsDynamicCurrent.laneIndex_target != v.paramsDynamicCurrent.laneIndex_current) {
+
+    // v.paramsDynamicCurrent.changingLaneProgress
+  }
 END_ENTITY_SYSTEM
 
-DEF_ENTITY_SYSTEM(CheckCollisions, A(Collidable) | A(Transform))
-  ref collider = getCmpE(Collidable);
+DEF_ENTITY_SYSTEM(CheckCollisions, A(Collider) | A(Transform))
+  ref collider = getCmpE(Collider);
   ref transform = getCmpE(Transform);
 
   // TODO if anyone collides then change game Phase to Rewind
 
 END_ENTITY_SYSTEM
 
-DEF_ENTITY_SYSTEM(UpdateFroggy, A(Froggy) | A(Transform))
+DEF_ENTITY_SYSTEM(SimulateFroggy, A(Froggy) | A(Transform))
   ref frog = getCmpE(Froggy);
 END_ENTITY_SYSTEM
 
-void initLevel(int levelIndex) {
-  EcsWorld &world = state.ecsWorld;
-  LevelParams level;
+DEF_ENTITY_SYSTEM(UpdateVehiclePositionForRender, A(Vehicle) | A(Transform))
+  ref t = getCmpE(Transform);
+  ref v = getCmpE(Vehicle);
+  ref paramsCurrent = v.paramsDynamicCurrent;
+  ref paramsStatic = v.paramsStatic;
 
-  level.lanesGap = 4;
-  level.roadsideHeight = 40;
-  level.laneHeight = 70;
+  t.x = calcCenterX(paramsCurrent.onLanePosPercent);
+  t.y = calcCenterYForLane(paramsCurrent.laneIndex_current);
 
-  switch (levelIndex) {
-  default:
-  case 0:
-    level.froggyXPosition = 0.2;
-    level.froggyThinkingTime = 1.0f;
-    level.maxLaneSpeed = 80;
-    level.laneCount = 4;
-
-    // Entity &e = world.newEntity();
-    // e.add(level);
+  if (paramsCurrent.laneIndex_target != paramsCurrent.laneIndex_current && paramsCurrent.changingLaneProgress >= 0) {
+    float nextLaneY = calcCenterYForLane(paramsCurrent.laneIndex_target);
+    t.y = LERP(paramsCurrent.changingLaneProgress, t.y, nextLaneY);
   }
 
-  state.currentLevel.params = level;
-  state.currentLevel.render.roadHeight = level.laneCount * level.laneHeight + ((level.laneCount - 1) * level.lanesGap);
-  state.currentLevel.render.grassHeight = (BASE_GAME_HEIGHT - state.currentLevel.render.roadHeight - 2 * level.roadsideHeight) / 2;
-
-  // Frog
-  {
-    ref frog = world.newEntity();
-    ref froggy = world.createComponent<Froggy>(frog.id);
-    froggy.froggyThinkingTime = state.currentLevel.params.froggyThinkingTime;
-    froggy.state = WaitForJump;
-    froggy.stateProgress = 0;
-
-    ref transform0 = world.createComponent<Transform>(frog.id);
-    ref transform = world.createComponent<Transform>(frog.id);
-    transform.orientation = 0;
-    transform.x = BASE_GAME_WIDTH * state.currentLevel.params.froggyXPosition;
-    transform.y = BASE_GAME_HEIGHT - state.currentLevel.render.grassHeight / 2;
-
-    ref collider = world.createComponent<Collidable>(frog.id);
-    collider.width = 30;
-    collider.height = 35;
-  }
-}
+  // super basic version without physics:
+  // update orientation based on paramsCurrent.changingLaneProgress (amount of 45* degrees rotation)
+  // and the Lane.horzDir direction (left or right!)
+  ref lane = getLaneForVehicle(state.currentLevel, v);
+  t.orientation = toRadian(45) * CLAMP01(paramsCurrent.changingLaneProgress) * (-lane.horzDir);
+END_ENTITY_SYSTEM
 
 void initGame() {
+  state.levelGarbage.init(sizeof(void *));
   int sizes[] = COMPONENT_TYPE_SIZES;
   initEcsWorld(state.ecsWorld, sizes, COMPONENT_TYPE_COUNT);
   vec3_set(state.camera.pos, 0, 0, 0);
   vec3_set(state.camera.dir, 0, 0, -1);
 
-  state.phase = Playing; // Intro;
-
   initLevel(0);
+  state.phase = Simulate; // Intro;
 }
 
 bool onEvent(int eventType, int value) {
   if (eventType != EVENT_KEYDOWN) {
     return false;
   }
-
-  _l(tw(0));
 
   if (value == KEY_RIGHT) {
     state.camera.pos[X] += tw(0);
@@ -143,11 +135,18 @@ void render(float deltaTime) {
 
   // process logic with ECS World
   EcsWorld &world = state.ecsWorld;
-
   world.deltaTime = deltaTime;
-  UpdateVehiclePositions(world);
-  UpdateFroggy(world);
-  CheckCollisions(world);
+
+  if (state.phase == Simulate) {
+    SimulateVehicle(world);
+    SimulateFroggy(world);
+    CheckCollisions(world);
+  }
+  else if (state.phase == Rewind) {
+  }
+  else if (state.phase == Playing) {
+  }
+  UpdateVehiclePositionForRender(world);
 
   const float z = zNear;
   if (1) {
@@ -160,7 +159,7 @@ void render(float deltaTime) {
     // - roadside
     // - grass
 
-    auto &level = state.currentLevel;
+    ref level = state.currentLevel;
     const int laneCount = level.params.laneCount;
     const float laneHeight = level.params.laneHeight;
     const float lanesGap = level.params.lanesGap;
@@ -187,10 +186,10 @@ void render(float deltaTime) {
                0, 0.7, 0.04,
                0, 1, 0.04);
     texQuad(TEXTURE_GRASS,
-        0, h, z, 0, 0,
-        w, h, z, 0, 1,
-        w, h - grassHeight, z, w / grassHeight, 1,
-        0, h - grassHeight, z, w / grassHeight, 0);
+            0, h, z, 0, 0,
+            w, h, z, 0, 1,
+            w, h - grassHeight, z, w / grassHeight, 1,
+            0, h - grassHeight, z, w / grassHeight, 0);
 
     float roadY = grassHeight + roadsideHeight;
 
@@ -210,7 +209,7 @@ void render(float deltaTime) {
     setColorLeftToRight(1, 0.1, 0.1, 0.1, 0, 0, 0);
     rect(0, roadY, z, w, roadHeight);
 
-    // lane gaps - top to down
+    // lane gaps - top to bottom
     float laneY = roadY + roadHeight;
     for (int i = 0; i < laneCount - 1; ++i) {
       laneY -= (laneHeight + lanesGap);
@@ -222,21 +221,38 @@ void render(float deltaTime) {
 
   // draw frog, we know there's only one
   if (1) {
-    auto *frog = world.getFirstEntityByAspect(A(Froggy));
+    auto *frog = world.getFirstEntityByAspect(A(Froggy) | A(Transform) | A(Collider));
     ref froggy = getCmp(Froggy, frog->id);
     ref transform = getCmp(Transform, frog->id);
-    ref collider = world.getComponent<Collidable>(frog->id);
+    ref collider = world.getComponent<Collider>(frog->id);
 
     renderFrog(transform.x, transform.y, z);
-
-    // debug collider
-    float
-        x = transform.x - collider.width / 2,
-        y = transform.y - collider.height / 2;
-    setColor(1, 1, 0, 0);
-    rect(x, y, z, collider.width, collider.height);
+    debugRect(transform, collider, z);
   }
-  // rect(100, 100, z, 300, 150);
+
+  // draw vehicles
+  if (1) {
+    FOR_EACH_ENTITY(world, A(Vehicle) | A(Transform))
+      ref v = getCmpE(Vehicle);
+      ref t = getCmpE(Transform);
+      ref c = getCmpE(Collider);
+      ref lane = getLaneForVehicle(state.currentLevel, v);
+
+      debugRect(t, c, z);
+
+      // debug: front of car
+      setColor(1, 1, 1, 0);
+      rect(t.x + lane.horzDir * c.width / 2, t.y - c.height / 2, z, 10, c.height);
+
+      if (v.paramsStatic->type == NormalCar) {
+        // TODO pick a 3d model
+      }
+
+      if (state.phase == Playing) {
+        // TODO special effects
+      }
+    END_FOR_EACH
+  }
 
   endFrame();
 }

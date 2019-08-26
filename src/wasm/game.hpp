@@ -15,6 +15,7 @@ WASM_EXPORT void initGame();
 // to be used everywhere else, requires specifying entity id by hand
 #define getCmp(type, entityId) world.getComponent<type>(entityId)
 
+#define createCmp(type, entityId) world.createComponent<type>(entityId)
 
 DEF_COMPONENT(Transform)
   float x;           //centerX, pixels on screen
@@ -23,32 +24,77 @@ DEF_COMPONENT(Transform)
 END_COMPONENT
 
 // corresponds to Transform
-DEF_COMPONENT(Collidable)
+DEF_COMPONENT(Collider)
   float width;  // pixels on screen
   float height; // pixels on screen
 END_COMPONENT
 
-struct VehicleParams {
-  int modelType;
+enum VehicleType
+{
+  NormalCar,
+  FastCar,
+  TIR
+};
+
+// unchangable parameters of a vehicle
+struct VehicleStaticParams {
+  VehicleType type;
 
   float maxSpeed;
 
-  // how much of meters can it slow down per second
-  float slowdownFactor;
+  // per second, value used in UI so the player can configure speed change up to this value
+  float maxSlowdownFactor;
 
-  // how much of meters can it speed up per second
-  float speedupFactor;
+  // per second, value used in UI so the player can configure speed change up to this value
+  float maxSpeedupFactor;
+
+  bool playerCanChangeLane;
+};
+
+// set by a player, essential part of whole gameplay
+struct VehicleConfiguredParams {
+  // default is 0, lower than 0 is to the length of `maxSlowdownFactor`, greater than 0 is up to `maxSpeedupFactor`
+  float speedChangeFactor;
+
+  // default is 0 which means no change. -1 is lane lower, +1 is upper.
+  // Player can change it only if `playerCanChangeLane` is true.
+  // int laneChange;
+  // TODO maybe it will disappear because there are 2 ways of changing lane: by player, by AI; not sure if those can play well and understandably together.
+};
+
+// effect of simulation
+struct VehicleDynamicParams {
+  float speed;
+
+  int laneIndex_current;
+  int laneIndex_target;
+
+  // 0 defines always left, 1 always right. Range 0..1 but values out of range are OK too!
+  float onLanePosPercent;
+
+  // 0...1 - when moving from current to target
+  float changingLaneProgress;
+};
+
+// all starting params for single vehicle
+struct VehicleConfig {
+  VehicleStaticParams *paramsStatic;
+  VehicleDynamicParams paramsDynamicInitial;
 };
 
 DEF_COMPONENT(Vehicle)
-  VehicleParams params;
+  VehicleStaticParams *paramsStatic;
 
-  int defaultParamsIndex;
+  // params set before simulation starts
+  VehicleDynamicParams paramsDynamicInitial;
 
-  int targetLaneIndex;
-  int currentLaneIndex;
+  // params set on currently rendered frame
+  VehicleDynamicParams paramsDynamicCurrent;
 
-  float changingLaneProgress; // 0...1 - when moving from current to target
+  // history of frames
+  Array /* of VehicleDynamicParams */ paramsDynamicSimulatedFrames;
+
+  VehicleConfiguredParams paramsConfiguredByPlayer;
 END_COMPONENT
 
 enum FrogState
@@ -67,13 +113,15 @@ DEF_COMPONENT(Froggy)
 
   // 0..1 describes both state / amount of waiting time and animation
   float stateProgress;
+
+  // TODO simulated frames
 END_COMPONENT
 
 #define COMPONENT_TYPE_COUNT __COUNTER__
 
 #define COMPONENT_TYPE_SIZES \
   { SIZE(Transform),         \
-    SIZE(Collidable),        \
+    SIZE(Collider),          \
     SIZE(Vehicle),           \
     SIZE(Froggy) }
 
@@ -86,8 +134,19 @@ enum Phase
   Rewind,
 };
 
+
+enum HorzDir {
+  Right = 1, Left = -1
+};
+
+struct Lane {
+  HorzDir horzDir;
+};
+
 struct LevelParams {
+  Array /*of VehicleConfig*/ vehicles;
   int maxLaneSpeed;
+  Lane *laneDefinitions; //TODO transform it to array?
   int laneCount;
   float laneHeight;
   float lanesGap;
@@ -114,10 +173,35 @@ struct Camera {
 };
 
 struct GameState {
-  Phase phase;
   EcsWorld ecsWorld;
   Level currentLevel;
   Camera camera;
+
+  Phase phase;
+
+  // applies if phase==Rewind
+  float rewindProgress;
+
+  // collection of pointers to be free()d up after level finishes
+  Array levelGarbage;
 };
+extern GameState state;
+
+#define GC_LEVEL(pointer) *(int *)state.levelGarbage.createPtr() = (int)(pointer);
+
+#define BOTTOM_UI_HEIGHT 100
+#define BASE_GAME_WIDTH 1200
+#define BASE_GAME_HEIGHT (675 - BOTTOM_UI_HEIGHT)
+
+void initGame();
+void initLevel(int levelIndex);
+
+// game_helpers
+float calcCenterX(float onLanePercent);
+float calcCenterYForLane(int laneIndex);
+Lane &getLaneForVehicle(Level &level, Vehicle &vehicle);
+
+// debug
+void debugRect(Transform &t, Collider &c, float z);
 
 #endif

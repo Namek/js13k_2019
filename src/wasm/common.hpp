@@ -1,7 +1,6 @@
 #ifndef COMMON_H
 #define COMMON_H
 
-
 typedef unsigned long size_t;
 typedef unsigned char uchar;
 typedef unsigned short ushort;
@@ -14,8 +13,10 @@ typedef unsigned int uint;
 #define ref auto &
 
 extern "C" {
-extern void _l(int);     //logging
-extern void _lstr(const char* text, int num);
+extern void _l(int);    //logging int
+extern void _lf(float); //logging float
+extern void _lstr(const char *text, int num);
+extern void _lfstr(const char *text, float num);
 extern float randomf(); // returns 0..1 float. 'f' suffix is here because of collision with stdlib function
 
 extern int round(float);
@@ -29,6 +30,5 @@ extern float sqrt(float);
 extern float abs(float);
 extern float pow(float, float);
 }
-
 
 #endif

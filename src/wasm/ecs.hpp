@@ -1,8 +1,8 @@
 #ifndef ECS__H
 #define ECS__H
 
-#include "utils/array.hpp"
 #include "common.hpp"
+#include "utils/array.hpp"
 
 // ------------------
 // Entity
@@ -23,7 +23,7 @@ struct Entity {
   }                   \
   ;
 
-#define A(componentType) (1 << (componentType::I))
+#define A(componentType) ((uint)(1 << (componentType::I)))
 #define SIZE(componentType) sizeof(componentType)
 
 // ------------------
@@ -34,7 +34,6 @@ struct EcsWorld {
   Array *components;
   int componentTypeCount;
   float deltaTime;
-
 
   Entity &newEntity() {
     int index;
@@ -109,11 +108,14 @@ struct EcsWorld {
   Entity *getFirstEntityByAspect(int aspectIncludes) {
     for (int ie = 0, ne = entities.size; ie < ne; ++ie) {
       Entity *entity = (Entity *)entities.getPtr(ie);
-      if ((entity->componentBitSet & aspectIncludes) != 0) {
+      if ((entity->componentBitSet & aspectIncludes) == aspectIncludes) {
         return entity;
       }
     }
-    // _lstr("entity_not_found", aspectIncludes);
+#ifndef PRODUCTION
+    _lstr("entity_not_found", aspectIncludes);
+    // TODO call abort()
+#endif
     return 0;
   }
 };
@@ -128,10 +130,10 @@ void initEcsWorld(EcsWorld &world, int componentTypeSizes[], int componentTypeCo
 
 #define DEF_ENTITY_SYSTEM(name, aspectIncludes)                  \
   void name(EcsWorld &world) {                                   \
-    const int _aspectIncludes = aspectIncludes;                  \
-    for (int ie = ie, ne = world.entities.size; ie < ne; ++ie) { \
+    float deltaTime = world.deltaTime;                           \
+    for (uint ie = 0, ne = world.entities.size; ie < ne; ++ie) { \
       Entity &entity = (Entity &)*world.entities.getPtr(ie);     \
-      if ((entity.componentBitSet & _aspectIncludes) != 0) {
+      if ((entity.componentBitSet & aspectIncludes) == (aspectIncludes)) {
 
 #define END_ENTITY_SYSTEM \
   }                       \
@@ -142,12 +144,11 @@ void initEcsWorld(EcsWorld &world, int componentTypeSizes[], int componentTypeCo
 // Filtering entities by aspect
 
 #define FOR_EACH_ENTITY(world, aspectIncludes)                 \
-  for (int ie = ie, ne = world.entities.size; ie < ne; ++ie) { \
+  for (uint ie = 0, ne = world.entities.size; ie < ne; ++ie) { \
     Entity &entity = (Entity &)*world.entities.getPtr(ie);     \
-    if ((entity.componentBitSet & aspectIncludes) != 0) {
+    if ((entity.componentBitSet & aspectIncludes) == (aspectIncludes)) {
 
 #define END_FOR_EACH \
-  }                  \
   }                  \
   }
 

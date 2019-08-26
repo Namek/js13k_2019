@@ -11,4 +11,6 @@ void memcpy(void *src, void *dst, int len);
 extern size_t sbrk(size_t);
 }
 
+#define Allocate(type, count) (type *)malloc(sizeof(type) * count)
+
 #endif

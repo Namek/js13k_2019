@@ -23,13 +23,14 @@ int const MAT_SIZE_4 = 4 * 4;
 #define MIN(a, b) (a < b ? a : b)
 #define MAX(a, b) (a > b ? a : b)
 #define CLAMP(a, min, max) MIN(max, MAX(min, a))
-#define CLAMP255(a) (int)(CLAMP(a, 0, 255))
-#define CLAMP01(a) (CLAMP(a, 0f, 1f))
+int CLAMP255(int a);
+float CLAMP01(float a);
+float LERP(float alpha, float from, float to);
 
 extern float mathTmp[VEC_SIZE_3 + VEC_SIZE_4 + MAT_SIZE_4];
-#define vec3Tmp (float*)mathTmp
-#define vec4Tmp (float*)(mathTmp + VEC_SIZE_3)
-#define mat4Tmp (float*)(mathTmp + VEC_SIZE_3 + VEC_SIZE_4)
+#define vec3Tmp (float *)mathTmp
+#define vec4Tmp (float *)(mathTmp + VEC_SIZE_3)
+#define mat4Tmp (float *)(mathTmp + VEC_SIZE_3 + VEC_SIZE_4)
 
 float *mat4_free(float *a);
 float *mat4_create();

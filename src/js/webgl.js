@@ -67,6 +67,20 @@ document.addEventListener("DOMContentLoaded", (event) => {
 
     return ret;
   }
+
+  const logStr = (strPtr, num) => {
+    //removeIf(production)
+    let str = "";
+    let buf = new Uint8Array(memory.buffer, strPtr, 100)
+
+    let i = -1
+    while (buf[++i] != 0)
+      str += String.fromCharCode(buf[i])
+
+    log("logstr:", str, num);
+    //endRemoveIf(production)
+  }
+
   
   const loadProgram = (wasmProgram) => {
     const getCanvasWidth = () => canvas.width
@@ -81,19 +95,10 @@ document.addEventListener("DOMContentLoaded", (event) => {
       table: new WebAssembly.Table({ initial: 0, element: 'anyfunc' }),
       _getCanvasWidth:getCanvasWidth,
       _getCanvasHeight:getCanvasHeight,
-      __l: log,
-      __lstr: (strPtr, num) => {
-        //removeIf(production)
-        let str = "";
-        let buf = new Uint8Array(memory.buffer, strPtr, 100)
-
-        let i = -1
-        while (buf[++i] != 0)
-          str += String.fromCharCode(buf[i])
-
-        log("logstr:", str, num);
-        //endRemoveIf(production)
-      },
+      __l: log, //int
+      __lf: log,//float
+      __lstr: logStr,
+      __lfstr: logStr,
       _randomf: Math.random,
       _triggerDrawCall: () => performDrawCall(),
       _sendTexture: (p,w,h) => receiveTexture(p,w,h),
@@ -308,7 +313,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
   
     /*================ Drawing the game =================*/
   
-    let firstRenderTimestamp = null
+    let previousRenderTimestamp = null
   
     performDrawCall = () => {
       const vertexCount = wasm_funcReturnValues[0]
@@ -346,24 +351,24 @@ document.addEventListener("DOMContentLoaded", (event) => {
     }
   
     const render = (timestamp) => {
-      if (firstRenderTimestamp == null) {
-        firstRenderTimestamp = timestamp
-      }
+      const deltaTime = (previousRenderTimestamp - timestamp) / 100
+      previousRenderTimestamp = timestamp
 
       gl.clearColor(0.2, 0.2, 0.8, 1)
       gl.clearDepth(1.0)
       gl.enable(gl_DEPTH_TEST)
       gl.depthFunc(gl_LEQUAL)
       gl.clear(gl_BUFFER_COLOR_BIT | gl_DEPTH_BUFFER_BIT)
-  
-      // will call performDrawCall() at least once
-      exports._render(firstRenderTimestamp - timestamp)
+
+      // should call performDrawCall() at least once
+      exports._render(deltaTime)
   
       gl.viewport(0, 0, canvas.width, canvas.height)
       requestAnimationFrame(render)
     }
 
     exports._initGame();
+    previousRenderTimestamp = performance.now()
     requestAnimationFrame(render)
   }
   const linkShaders = (gl, vertCode, fragCode) => {
