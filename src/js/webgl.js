@@ -218,25 +218,39 @@ document.addEventListener("DOMContentLoaded", (event) => {
 
     //removeIf(production)
     if (DEBUG_TWEAK) {
-      function createInput(name, index, defaultValue, step) {
-        let
-          container = document.createElement("p")
-        , input = document.createElement("input")
-
+      const addTweaker = (header, el) => {
+        let container = document.createElement("p")
+        container.innerHTML = header + "<br>"
+        container.appendChild(el)
+        tv.appendChild(container)
+      }
+      const createInput = (name, tweakIndex, defaultValue, step) => {
+        let input = document.createElement("input")
         input.type = "number";
-        input.onchange = evt => {
-          exports._setTweakValue(index, +input.value)
+        input.style.width = '100px'
+        input.onchange = () => {
+          exports._setTweakValue(tweakIndex, +input.value)
         }
         input.value = defaultValue
         input.step = step || 1.0
-        container.innerHTML = name + "<br>"
-        container.appendChild(input)
-        tv.appendChild(container)
-        exports._setTweakValue(index, defaultValue)
+        addTweaker(name, input)
+        exports._setTweakValue(tweakIndex, defaultValue)
+      }
+      const createSwitch = (name, tweakIndex, values) => {
+        let btn = document.createElement("button")
+        let currentValueIndex = -1
+        btn.onclick = () => {
+          currentValueIndex = (currentValueIndex + 1) % values.length
+          btn.textContent = `${name}: ${values[currentValueIndex]}`
+          exports._setTweakValue(tweakIndex, values[currentValueIndex])
+        }
+        btn.onclick()
+        addTweaker(name, btn)
       }
       let i = 0
       createInput("cameraChange", i++, 10)
-      createInput("game phase", i++, 0)//3==Simulate
+      createSwitch("simulate", i++, [3, 0])
+      createInput("time speed", i++, 0.1, 0.1)//3==Simulate
     }
     //endRemoveIf(production)
 

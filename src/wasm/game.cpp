@@ -135,7 +135,7 @@ void render(float deltaTime) {
 
   // process logic with ECS World
   EcsWorld &world = state.ecsWorld;
-  world.deltaTime = deltaTime;
+  world.deltaTime = deltaTime * tw(2);
 
   Phase phase = (Phase)(int)tw(1);// state.phase;
 
