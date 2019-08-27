@@ -69,9 +69,6 @@ struct VehicleDynamicParams {
   int laneIndex_current;
   int laneIndex_target;
 
-  // 0 defines always left, 1 always right. Range 0..1 but values out of range are OK too!
-  float onLanePosPercent;
-
   // 0...1 - when moving from current to target
   float changingLaneProgress;
 };
@@ -80,6 +77,12 @@ struct VehicleDynamicParams {
 struct VehicleConfig {
   VehicleStaticParams *paramsStatic;
   VehicleDynamicParams paramsDynamicInitial;
+  float x, y;
+};
+
+struct VehicleTimeFrame {
+  VehicleDynamicParams params;
+  Transform transform;
 };
 
 DEF_COMPONENT(Vehicle)
@@ -92,7 +95,7 @@ DEF_COMPONENT(Vehicle)
   VehicleDynamicParams paramsDynamicCurrent;
 
   // history of frames
-  Array /* of VehicleDynamicParams */ paramsDynamicSimulatedFrames;
+  Array /* of VehicleTimeFrame */ paramsDynamicSimulatedFrames;
 
   VehicleConfiguredParams paramsConfiguredByPlayer;
 END_COMPONENT

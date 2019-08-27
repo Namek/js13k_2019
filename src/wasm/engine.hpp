@@ -127,6 +127,6 @@ int rgba(int r, int g, int b, int a);
 int rgb(int r, int g, int b);
 
 void rect(float x, float y, float z, float width, float height);
-void texRect(int textureId, float x, float y, float z, float width, float height, float uLen, float vLen);
+void texRect(int textureId, float x, float y, float z, float width, float height, float u1 = 1, float v1 = 1, float u0 = 0, float v0 = 0);
 
 #endif

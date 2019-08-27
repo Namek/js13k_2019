@@ -7,6 +7,7 @@ GameState state;
 
 DEF_ENTITY_SYSTEM(SimulateVehicle, A(Vehicle))
   ref v = getCmpE(Vehicle);
+  ref vt = getCmpE(Transform);
 
   // change speed due to player's settings
   ref speedChangeFactor = v.paramsConfiguredByPlayer.speedChangeFactor;
@@ -20,7 +21,7 @@ DEF_ENTITY_SYSTEM(SimulateVehicle, A(Vehicle))
   // update horizontal position
   ref lane = getLaneForVehicle(state.currentLevel, v);
   float diffX = v.paramsDynamicCurrent.speed * deltaTime * lane.horzDir;
-  v.paramsDynamicCurrent.onLanePosPercent -= diffX;
+  vt.x -= diffX;
 
   // foresee to decide if needs changing lanes
   // TODO
@@ -30,6 +31,8 @@ DEF_ENTITY_SYSTEM(SimulateVehicle, A(Vehicle))
     // TODO
     // v.paramsDynamicCurrent.changingLaneProgress
   }
+
+  // TODO save frame
 END_ENTITY_SYSTEM
 
 DEF_ENTITY_SYSTEM(CheckCollisions, A(Collider) | A(Transform))
@@ -50,7 +53,7 @@ DEF_ENTITY_SYSTEM(UpdateVehiclePositionForRender, A(Vehicle) | A(Transform))
   ref paramsCurrent = v.paramsDynamicCurrent;
   ref paramsStatic = v.paramsStatic;
 
-  t.x = calcCenterX(paramsCurrent.onLanePosPercent);
+  // t.x is already calculated in simulation or restored from frame
   t.y = calcCenterYForLane(paramsCurrent.laneIndex_current);
 
   if (paramsCurrent.laneIndex_target != paramsCurrent.laneIndex_current && paramsCurrent.changingLaneProgress >= 0) {
@@ -243,15 +246,25 @@ void render(float deltaTime) {
       ref lane = getLaneForVehicle(state.currentLevel, v);
 
       // debug: car color by type
-      if (v.paramsStatic->type == FastCar)
-        setColor(1, 1, 0, 0);
-      else
+      float
+          x = t.x - c.width / 2,
+          y = t.y - c.height / 2,
+          frontWidth = 10;
+
+      if (v.paramsStatic->type == FastCar) {
+        float offset = frontWidth / c.width;
+        texRect(TEXTURE_CHECKERBOARD,
+                x, y, z, c.width, c.height,
+                2*(c.width / c.height) - offset, 2, -offset, 0);
+      }
+      else {
         setColor(1, 0, 0, 1);
-      debugRect(t, c, z);
+        rect(x, y, z, c.width, c.height);
+      }
 
       // debug: front of car
       setColor(1, 1, 1, 0);
-      rect(t.x + lane.horzDir * c.width / 2, t.y - c.height / 2, z, 10, c.height);
+      rect(t.x + lane.horzDir * c.width / 2, t.y - c.height / 2, z, frontWidth, c.height);
 
       if (v.paramsStatic->type == NormalCar) {
         // TODO pick a 3d model

@@ -25,8 +25,8 @@ void generateTextures() {
 }
 
 void checkerboard(int *tex) {
-  const int w = 500;
-  const int h = 500;
+  const int w = 100;
+  const int h = 100;
   const int gap = 50;
   int color = 0;
 

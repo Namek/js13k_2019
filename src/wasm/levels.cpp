@@ -16,14 +16,15 @@ VehicleStaticParams &setupVehicleStaticParams(
   return vs;
 }
 
-VehicleConfig *newVehicleConfig(LevelParams &levelParams, VehicleStaticParams *paramsStatic, int laneIndex, float maxSpeedPercent, float onLanePosPercent) {
+VehicleConfig *newVehicleConfig(LevelParams &levelParams, VehicleStaticParams *paramsStatic, int laneIndex, float maxSpeedPercent, float xPosPercent) {
   auto vc = (VehicleConfig *)levelParams.vehicles.createPtr();
   vc->paramsStatic = paramsStatic;
   vc->paramsDynamicInitial.changingLaneProgress = 0;
   vc->paramsDynamicInitial.laneIndex_target = laneIndex;
   vc->paramsDynamicInitial.laneIndex_current = laneIndex;
-  vc->paramsDynamicInitial.onLanePosPercent = onLanePosPercent;
   vc->paramsDynamicInitial.speed = vc->paramsStatic->maxSpeed * maxSpeedPercent;
+  vc->x = calcCenterX(xPosPercent);
+  vc->y = calcCenterYForLane(laneIndex);
   return vc;
 }
 
@@ -62,16 +63,26 @@ void initLevel(int levelIndex) {
     // static params
     GC_LEVEL(vehiclesStatic = Allocate(VehicleStaticParams, 2));
 
-    ref normalCar = setupVehicleStaticParams(vehiclesStatic[0], NormalCar, 0.4, 0.4, true, 0.01);
-    ref fastCar =  setupVehicleStaticParams(vehiclesStatic[1], FastCar, 0.7, 0.7, true, normalCar.maxSpeed * 3);
+    ref normalCar = setupVehicleStaticParams(vehiclesStatic[0], NormalCar, 0.4, 0.4, true, 110);
+    ref fastCar = setupVehicleStaticParams(vehiclesStatic[1], FastCar, 0.7, 0.7, true, normalCar.maxSpeed * 2);
 
     // all vehicles on level
     levelParams.vehicles.init(sizeof(VehicleConfig));
-    newVehicleConfig(levelParams, vehiclesStatic + 0, 0, 0.8, 0.4);
-    newVehicleConfig(levelParams, vehiclesStatic + 0, 0, 0.8, 0.2);
-    newVehicleConfig(levelParams, vehiclesStatic + 1, 1, 0.8, 0.7);
-    newVehicleConfig(levelParams, vehiclesStatic + 0, 2, 0.8, 0.1);
-    newVehicleConfig(levelParams, vehiclesStatic + 1, 3, 1, 0.4);
+    // clang-format off
+    const float vehicleParams[] = {
+      // vehicleStaticPtr, laneIndex, maxSpeedPercent, xPosPercent
+      0, 0, 0.8, 0.4,
+      0, 0, 0.8, 0.2,
+      1, 1, 1, 0.2,
+      1, 1, 0.8, 0.6,
+      0, 2, 0.8, 0.9,
+      1, 3, 1.0, 0.9,
+    };
+    // clang-format on
+    for (int i = 0; i < 5; ++i) {
+      const float *vparams = vehicleParams + i * 4;
+      newVehicleConfig(levelParams, vehiclesStatic + (int)vparams[0], (int)vparams[1], vparams[2], vparams[3]);
+    }
   }
 
   state.currentLevel.params = levelParams;
@@ -111,14 +122,15 @@ void initLevel(int levelIndex) {
       v.paramsDynamicInitial = vehicleConfig->paramsDynamicInitial;
       v.paramsDynamicCurrent = vehicleConfig->paramsDynamicInitial;
       v.paramsStatic = vehicleConfig->paramsStatic;
-      v.paramsDynamicSimulatedFrames.init(sizeof(VehicleDynamicParams));
+      v.paramsDynamicSimulatedFrames.init(sizeof(VehicleTimeFrame));
       v.paramsConfiguredByPlayer.speedChangeFactor = 0;
       // v.paramsConfiguredByPlayer.laneChange = 0;
 
       vc.height = state.currentLevel.params.laneHeight * 0.85f;
       vc.width = 120;
 
-      // transform will be set up automatically by system
+      vt.x = vehicleConfig->x;
+      vt.y = vehicleConfig->y;
     }
   }
 }

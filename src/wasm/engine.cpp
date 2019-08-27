@@ -458,13 +458,13 @@ void rect(float x, float y, float z, float width, float height) {
   quad(x, y, z, x, y + height, z, x + width, y + height, z, x + width, y, z);
 }
 
-void texRect(int textureId, float x, float y, float z, float width, float height, float uLen, float vLen) {
+void texRect(int textureId, float x, float y, float z, float width, float height, float u1, float v1, float u0, float v0) {
   texQuad(
       textureId,
-      x, y, z, 0, 0,
-      x, y + height, z, 0, vLen,
-      x + width, y + height, z, uLen, vLen,
-      x + width, y, z, uLen, 0);
+      x, y, z, u0, v0,
+      x, y + height, z, u0, v1,
+      x + width, y + height, z, u1, v1,
+      x + width, y, z, u1, v0);
 }
 
 void setTweakValue(int index, float value) {
