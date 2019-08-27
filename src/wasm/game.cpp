@@ -189,9 +189,9 @@ void render(float deltaTime) {
                0, 1, 0.04);
     texQuad(TEXTURE_GRASS,
             0, h, z, 0, 0,
-            w, h, z, 0, 1,
+            w, h, z, w / grassHeight, 0,
             w, h - grassHeight, z, w / grassHeight, 1,
-            0, h - grassHeight, z, w / grassHeight, 0);
+            0, h - grassHeight, z, 0, 1);
 
     float roadY = grassHeight + roadsideHeight;
 
