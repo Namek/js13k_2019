@@ -17,10 +17,22 @@ WASM_EXPORT void initGame();
 
 #define createCmp(type, entityId) world.createComponent<type>(entityId)
 
+enum HorzDir
+{
+  Right = 1,
+  Left = -1
+};
+
+enum VertDir
+{
+  Up = -1,
+  Down = 1
+};
+
 DEF_COMPONENT(Transform)
-  float x;           //centerX, pixels on screen
-  float y;           //centerY
-  float orientation; //rotation in radians
+  // centerX, centerY of object, baseZ; size in pixels, used for rendering
+  Vec3 pos;
+  float orientation[MAT_SIZE_4];
 END_COMPONENT
 
 // corresponds to Transform
@@ -102,8 +114,9 @@ END_COMPONENT
 
 enum FrogState
 {
-  Jump,
-  WaitForJump
+  WaitForJump,
+  InitJump,
+  DuringJump
 };
 DEF_COMPONENT(Froggy)
   FrogState state;
@@ -111,13 +124,16 @@ DEF_COMPONENT(Froggy)
   // state == WaitForJump: delay between jumps
   float froggyThinkingTime;
 
-  // how long it jumps every time, sized with pixels on screen
-  float leapLength;
-
   // 0..1 describes both state / amount of waiting time and animation
   float stateProgress;
 
-  // TODO simulated frames
+  VertDir yDirection;
+
+  float jumpingFrom[VEC_SIZE_3];
+  float jumpingTo[VEC_SIZE_3];
+  int nextLaneIndex;
+
+  // TODO save simulated frames
 END_COMPONENT
 
 #define COMPONENT_TYPE_COUNT __COUNTER__
@@ -137,11 +153,6 @@ enum Phase
   Rewind,
 };
 
-
-enum HorzDir {
-  Right = 1, Left = -1
-};
-
 struct Lane {
   HorzDir horzDir;
 };
@@ -156,6 +167,7 @@ struct LevelParams {
   float roadsideHeight;
   float froggyThinkingTime; //seconds
   float froggyXPosition;    //0..1 - percent of screen
+  VertDir froggyDirection;
 };
 
 // based on laneHeight, laneCount
@@ -171,8 +183,8 @@ struct Level {
 };
 
 struct Camera {
-  float *pos; //vec3
-  float *dir; //vec3
+  Vec3 pos;
+  Vec3 dir;
 };
 
 struct GameState {
@@ -203,8 +215,9 @@ void initLevel(int levelIndex);
 float calcCenterX(float onLanePercent);
 float calcCenterYForLane(int laneIndex);
 Lane &getLaneForVehicle(Level &level, Vehicle &vehicle);
+bool isAnyVehicleOnSight(EcsWorld &world, float x, float y, float xDir, float yDir, float rayWidth);
 
 // debug
-void debugRect(Transform &t, Collider &c, float z);
+void debugRect(Transform &t, Collider &c);
 
 #endif

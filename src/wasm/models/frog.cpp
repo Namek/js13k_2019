@@ -115,12 +115,12 @@ Model3d &getModel_frog() {
 }
 
 // returns frog's matrix. The matrix is already push()ed, remember to pop().
-float* renderFrog(float x, float y, float z) {
+float* renderFrog(float translation[VEC_SIZE_3]) {
   const float frogScale = 0.14;
   const float tZ = 85.7 * frogScale;
 
   auto mat = mat4_identity(pushModelMatrix());
-  mat4_translate(mat, mat, vec3_set(vec3Tmp, x, y, z));
+  mat4_translate(mat, mat, translation);
   mat4_rotateX(mat, mat, toRadian(-180));
   mat4_rotateY(mat, mat, toRadian(0));
   mat4_rotateZ(mat, mat, toRadian(90));

@@ -2,6 +2,7 @@
 #define MODELS__H
 
 #include "../common.hpp"
+#include "../math/common.h"
 
 struct Model3d {
   float vertexAlignX;
@@ -21,6 +22,6 @@ Model3d &getModel_frog();
 Model3d &getModel_test();
 void renderModel3d(Model3d &model);
 
-float* renderFrog(float x, float y, float z);
+float* renderFrog(float translation[VEC_SIZE_3]);
 
 #endif

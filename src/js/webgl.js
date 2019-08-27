@@ -2,8 +2,16 @@ document.addEventListener("DOMContentLoaded", (event) => {
   const
     log = console.log
   , canvas = document.getElementById("c")
+
+  //removeIf(!production)
+  , DEBUG_TEXTURES = false
+  , DEBUG_TWEAK = false
+  //endRemoveIf(!production)
+  //removeIf(production)
   , DEBUG_TEXTURES = true
   , DEBUG_TWEAK = true
+  //endRemoveIf(production)
+
   , gl_BUFFER_COLOR_BIT = 16384
   , gl_DEPTH_BUFFER_BIT = 256
   , gl_LEQUAL = 515
@@ -249,8 +257,8 @@ document.addEventListener("DOMContentLoaded", (event) => {
       }
       let i = 0
       createInput("cameraChange", i++, 10)
-      createSwitch("simulate", i++, [3, 0])
-      createInput("time speed", i++, 0.1, 0.1)//3==Simulate
+      createSwitch("simulate", i++, [0, 3])//3==Simulate
+      createInput("time speed", i++, 1, 0.1)
     }
     //endRemoveIf(production)
 
@@ -366,7 +374,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
     }
   
     const render = (timestamp) => {
-      const deltaTime = (previousRenderTimestamp - timestamp) / 100
+      const deltaTime = (timestamp - previousRenderTimestamp) / 1000
       previousRenderTimestamp = timestamp
 
       gl.clearColor(0.2, 0.2, 0.8, 1)

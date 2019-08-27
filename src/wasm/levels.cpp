@@ -50,6 +50,7 @@ void initLevel(int levelIndex) {
   case 0:
     levelParams.froggyXPosition = 0.8;
     levelParams.froggyThinkingTime = 1.0f;
+    levelParams.froggyDirection = Up;
     levelParams.maxLaneSpeed = 80;
 
     // lanes
@@ -73,8 +74,8 @@ void initLevel(int levelIndex) {
       // vehicleStaticPtr, laneIndex, maxSpeedPercent, xPosPercent
       0, 0, 0.8, 0.4,
       0, 0, 0.8, 0.2,
-      1, 1, 1, 0.2,
-      1, 1, 0.8, 0.6,
+      1, 1, 1, -0.2,
+      1, 1, 0.8, 0.4,
       0, 2, 0.8, 0.9,
       1, 3, 1.0, 0.9,
     };
@@ -96,11 +97,12 @@ void initLevel(int levelIndex) {
     froggy.froggyThinkingTime = state.currentLevel.params.froggyThinkingTime;
     froggy.state = WaitForJump;
     froggy.stateProgress = 0;
+    froggy.yDirection = state.currentLevel.params.froggyDirection;
+    froggy.nextLaneIndex = -1; //bottom roadside (-1) is right after bottom grass (-2)
 
     ref transform = world.createComponent<Transform>(frog.id);
-    transform.orientation = 0;
-    transform.x = BASE_GAME_WIDTH * state.currentLevel.params.froggyXPosition;
-    transform.y = BASE_GAME_HEIGHT - state.currentLevel.render.grassHeight / 2;
+    transform.pos.x = calcCenterX(state.currentLevel.params.froggyXPosition);
+    transform.pos.y = calcCenterYForLane(-2); //position for bottom grass
 
     ref collider = world.createComponent<Collider>(frog.id);
     collider.width = 30;
@@ -129,8 +131,8 @@ void initLevel(int levelIndex) {
       vc.height = state.currentLevel.params.laneHeight * 0.85f;
       vc.width = 120;
 
-      vt.x = vehicleConfig->x;
-      vt.y = vehicleConfig->y;
+      vt.pos.x = vehicleConfig->x;
+      vt.pos.y = vehicleConfig->y;
     }
   }
 }

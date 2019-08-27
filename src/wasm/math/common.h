@@ -20,6 +20,22 @@ int const VEC_SIZE_3 = 3;
 int const VEC_SIZE_4 = 4;
 int const MAT_SIZE_4 = 4 * 4;
 
+union Vec3
+{
+  struct {
+    float x, y, z;
+  };
+  float vec[VEC_SIZE_3];
+};
+
+union Vec4
+{
+  struct {
+    float x, y, z, w;
+  };
+  float vec[VEC_SIZE_4];
+};
+
 #define MIN(a, b) (a < b ? a : b)
 #define MAX(a, b) (a > b ? a : b)
 #define CLAMP(a, min, max) MIN(max, MAX(min, a))

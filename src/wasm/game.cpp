@@ -4,6 +4,8 @@
 #include "models/models.hpp"
 
 GameState state;
+const float FROGGY_JUMPING_TIME = 0.4f;
+const float FROGGY_JUMP_AMPLITUDE = 4.5f;
 
 DEF_ENTITY_SYSTEM(SimulateVehicle, A(Vehicle))
   ref v = getCmpE(Vehicle);
@@ -21,7 +23,7 @@ DEF_ENTITY_SYSTEM(SimulateVehicle, A(Vehicle))
   // update horizontal position
   ref lane = getLaneForVehicle(state.currentLevel, v);
   float diffX = v.paramsDynamicCurrent.speed * deltaTime * lane.horzDir;
-  vt.x -= diffX;
+  vt.pos.x += diffX;
 
   // foresee to decide if needs changing lanes
   // TODO
@@ -43,8 +45,51 @@ DEF_ENTITY_SYSTEM(CheckCollisions, A(Collider) | A(Transform))
 
 END_ENTITY_SYSTEM
 
-DEF_ENTITY_SYSTEM(SimulateFroggy, A(Froggy) | A(Transform))
+DEF_ENTITY_SYSTEM(SimulateFroggy, A(Froggy) | A(Transform) | A(Collider))
   ref frog = getCmpE(Froggy);
+  ref t = getCmpE(Transform);
+  ref c = getCmpE(Collider);
+
+  // cast ray upfront over the road with small amount of timing prediction (wider ray)
+  if (frog.state == WaitForJump) {
+    if (frog.stateProgress >= 1.0) {
+      frog.state = InitJump;
+      frog.stateProgress = 0;
+    }
+    else {
+      frog.stateProgress += (deltaTime / frog.froggyThinkingTime);
+    }
+  }
+
+  // jump if there is no vehicle on sight
+  if (frog.state == InitJump) {
+    if (!isAnyVehicleOnSight(world, t.pos.x, t.pos.y, 0, -1, c.width * 2)) {
+      frog.state = DuringJump;
+      frog.stateProgress = 0;
+      frog.jumpingFrom[X] = t.pos.x;
+      frog.jumpingFrom[Y] = t.pos.y;
+      frog.jumpingTo[X] = t.pos.x;
+      frog.jumpingTo[Y] = calcCenterYForLane(frog.nextLaneIndex);
+      frog.nextLaneIndex += 1;
+    }
+  }
+
+  // it's currently on the fly
+  if (frog.state == DuringJump) {
+    // TODO interpolate t.y based on jumpingFrom/jumpingTo
+    frog.stateProgress += (deltaTime / FROGGY_JUMPING_TIME);
+
+    vec3_lerp(t.pos.vec, frog.jumpingFrom, frog.jumpingTo, sin(PI / 2 * frog.stateProgress));
+    t.pos.z = sin(PI * frog.stateProgress) * FROGGY_JUMP_AMPLITUDE;
+
+    if (frog.stateProgress >= 1.0f) {
+      frog.stateProgress = 0;
+      frog.state = WaitForJump;
+      t.pos.z = 0;
+    }
+  }
+
+  // TODO record a state frame
 END_ENTITY_SYSTEM
 
 DEF_ENTITY_SYSTEM(UpdateVehiclePositionForRender, A(Vehicle) | A(Transform))
@@ -54,26 +99,39 @@ DEF_ENTITY_SYSTEM(UpdateVehiclePositionForRender, A(Vehicle) | A(Transform))
   ref paramsStatic = v.paramsStatic;
 
   // t.x is already calculated in simulation or restored from frame
-  t.y = calcCenterYForLane(paramsCurrent.laneIndex_current);
+  t.pos.y = calcCenterYForLane(paramsCurrent.laneIndex_current);
 
   if (paramsCurrent.laneIndex_target != paramsCurrent.laneIndex_current && paramsCurrent.changingLaneProgress >= 0) {
     float nextLaneY = calcCenterYForLane(paramsCurrent.laneIndex_target);
-    t.y = LERP(paramsCurrent.changingLaneProgress, t.y, nextLaneY);
+    t.pos.y = LERP(paramsCurrent.changingLaneProgress, t.pos.y, nextLaneY);
   }
 
   // super basic version without physics:
   // update orientation based on paramsCurrent.changingLaneProgress (amount of 45* degrees rotation)
   // and the Lane.horzDir direction (left or right!)
   ref lane = getLaneForVehicle(state.currentLevel, v);
-  t.orientation = toRadian(45) * CLAMP01(paramsCurrent.changingLaneProgress) * (-lane.horzDir);
+  mat4_rotateZ(
+      t.orientation, mat4_identity(t.orientation),
+      toRadian(45) * CLAMP01(paramsCurrent.changingLaneProgress) * (-lane.horzDir));
+END_ENTITY_SYSTEM
+
+DEF_ENTITY_SYSTEM(UpdateFroggyForRender, A(Froggy) | A(Transform))
+  ref froggy = getCmpE(Froggy);
+  ref t = getCmpE(Transform);
+  mat4_rotateZ(t.orientation, mat4_identity(t.orientation),
+               toRadian(froggy.yDirection == Up ? 0 : 180));
+
+  // if (froggy.state == DuringJump) {
+  mat4_rotateX(t.orientation, t.orientation, cos(PI * (froggy.stateProgress - 0.5f)));
+  // }
 END_ENTITY_SYSTEM
 
 void initGame() {
   state.levelGarbage.init(sizeof(void *));
   int sizes[] = COMPONENT_TYPE_SIZES;
   initEcsWorld(state.ecsWorld, sizes, COMPONENT_TYPE_COUNT);
-  vec3_set(state.camera.pos, 0, 0, 0);
-  vec3_set(state.camera.dir, 0, 0, -1);
+  vec3_set(state.camera.pos.vec, 0, 0, 0);
+  vec3_set(state.camera.dir.vec, 0, 0, -1);
 
   initLevel(0);
   state.phase = Simulate; // Intro;
@@ -85,16 +143,16 @@ bool onEvent(int eventType, int value) {
   }
 
   if (value == KEY_RIGHT) {
-    state.camera.pos[X] += tw(0);
+    state.camera.pos.x += tw(0);
   }
   else if (value == KEY_LEFT) {
-    state.camera.pos[X] -= tw(0);
+    state.camera.pos.x -= tw(0);
   }
   else if (value == KEY_UP) {
-    state.camera.pos[Y] -= tw(0);
+    state.camera.pos.y -= tw(0);
   }
   else if (value == KEY_DOWN) {
-    state.camera.pos[Y] += tw(0);
+    state.camera.pos.y += tw(0);
   }
   else
     return false;
@@ -131,16 +189,16 @@ void render(float deltaTime) {
   triangle(50, h / 2, zNear, 100, h / 2, zNear, 100, h, zNear);
 
   // TODO state.camera.dir
-  float camZ = -state.camera.pos[Z];
+  float camZ = -state.camera.pos.z;
   mat4_translate(getViewMatrix(), getViewMatrix(),
-                 vec3_set(vec3Tmp, -state.camera.pos[X], -state.camera.pos[Y], camZ));
+                 vec3_set(vec3Tmp, -state.camera.pos.x, -state.camera.pos.y, camZ));
   //TODO camera.dir
 
   // process logic with ECS World
   EcsWorld &world = state.ecsWorld;
   world.deltaTime = deltaTime * tw(2);
 
-  Phase phase = (Phase)(int)tw(1);// state.phase;
+  Phase phase = (Phase)(int)tw(1); // state.phase;
 
   if (phase == Simulate) {
     SimulateVehicle(world);
@@ -152,6 +210,7 @@ void render(float deltaTime) {
   else if (phase == Playing) {
   }
   UpdateVehiclePositionForRender(world);
+  UpdateFroggyForRender(world);
 
   const float z = zNear;
   if (1) {
@@ -231,10 +290,10 @@ void render(float deltaTime) {
     ref transform = getCmp(Transform, frog->id);
     ref collider = world.getComponent<Collider>(frog->id);
 
-    renderFrog(transform.x, transform.y, z);
+    renderFrog(transform.pos.vec);
 
     setColor(1, 1, 0, 0);
-    debugRect(transform, collider, z);
+    debugRect(transform, collider);
   }
 
   // draw vehicles
@@ -247,15 +306,15 @@ void render(float deltaTime) {
 
       // debug: car color by type
       float
-          x = t.x - c.width / 2,
-          y = t.y - c.height / 2,
+          x = t.pos.x - c.width / 2,
+          y = t.pos.y - c.height / 2,
           frontWidth = 10;
 
       if (v.paramsStatic->type == FastCar) {
         float offset = frontWidth / c.width;
         texRect(TEXTURE_CHECKERBOARD,
                 x, y, z, c.width, c.height,
-                2*(c.width / c.height) - offset, 2, -offset, 0);
+                2 * (c.width / c.height) - offset, 2, -offset, 0);
       }
       else {
         setColor(1, 0, 0, 1);
@@ -264,7 +323,7 @@ void render(float deltaTime) {
 
       // debug: front of car
       setColor(1, 1, 1, 0);
-      rect(t.x + lane.horzDir * c.width / 2, t.y - c.height / 2, z, frontWidth, c.height);
+      rect(t.pos.x + lane.horzDir * c.width / 2, t.pos.y - c.height / 2, z, frontWidth, c.height);
 
       if (v.paramsStatic->type == NormalCar) {
         // TODO pick a 3d model
