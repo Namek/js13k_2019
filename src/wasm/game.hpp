@@ -116,7 +116,8 @@ enum FrogState
 {
   WaitForJump,
   InitJump,
-  DuringJump
+  DuringJump,
+  Done
 };
 DEF_COMPONENT(Froggy)
   FrogState state;

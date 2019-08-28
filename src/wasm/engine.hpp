@@ -36,10 +36,10 @@ struct EngineState {
   , *projectionMatrix
   , *viewMatrix
   , *modelMatrix
+  , *normalMatrix
 
   // internal memory
   , *currentColor
-  , currentVertexNormal[4]
   , tweakValues[10]
   ;
 
@@ -94,9 +94,9 @@ void setColorLeftToRight(
     float r1, float g1, float b1,
     float r2, float g2, float b2);
 
-void setCurrentVertexNormal(float x, float y, float z);
 int vertex(float x, float y, float z);
 void index(int i);
+void calculateTriangleNormal(uint firstVertexIndex, uint faceSize);
 
 void triangle(
     float v1x, float v1y, float v1z,

@@ -50,7 +50,7 @@ void initLevel(int levelIndex) {
   case 0:
     levelParams.froggyXPosition = 0.8;
     levelParams.froggyThinkingTime = 1.0f;
-    levelParams.froggyDirection = Up;
+    levelParams.froggyDirection = Down;
     levelParams.maxLaneSpeed = 80;
 
     // lanes
@@ -98,11 +98,13 @@ void initLevel(int levelIndex) {
     froggy.state = WaitForJump;
     froggy.stateProgress = 0;
     froggy.yDirection = state.currentLevel.params.froggyDirection;
-    froggy.nextLaneIndex = -1; //bottom roadside (-1) is right after bottom grass (-2)
+    bool isGoingUp = froggy.yDirection == Up;
+    froggy.nextLaneIndex = isGoingUp ? -1 : state.currentLevel.params.laneCount;
 
     ref transform = world.createComponent<Transform>(frog.id);
     transform.pos.x = calcCenterX(state.currentLevel.params.froggyXPosition);
-    transform.pos.y = calcCenterYForLane(-2); //position for bottom grass
+    transform.pos.y = calcCenterYForLane(froggy.nextLaneIndex + (isGoingUp ? -1 : +1)); //position on grass
+    transform.pos.z = 0;
 
     ref collider = world.createComponent<Collider>(frog.id);
     collider.width = 30;

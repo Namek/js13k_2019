@@ -5,23 +5,21 @@
 #include "../math/common.h"
 
 struct Model3d {
-  float vertexAlignX;
-  float vertexAlignY;
-  float vertexAlignZ;
+  Vec3 vertexAlign;
+  void *verticesCompressed;
   float scale;
-  void *vertices;
-  void *verticesf;
-  void *faces3;
-  void *faces4;
+  float *vertices;
+  float *faceNormals;
+  uchar *faces3;
+  uchar *faces4;
   ushort vertexCount;
   ushort face3Count;
   ushort face4Count;
 };
 
 Model3d &getModel_frog();
-Model3d &getModel_test();
 void renderModel3d(Model3d &model);
 
-float* renderFrog(float translation[VEC_SIZE_3]);
+float *renderFrog(float translation[VEC_SIZE_3], float orientation[MAT_SIZE_4]);
 
 #endif

@@ -70,13 +70,12 @@ DEF_ENTITY_SYSTEM(SimulateFroggy, A(Froggy) | A(Transform) | A(Collider))
       frog.jumpingFrom[Y] = t.pos.y;
       frog.jumpingTo[X] = t.pos.x;
       frog.jumpingTo[Y] = calcCenterYForLane(frog.nextLaneIndex);
-      frog.nextLaneIndex += 1;
+      frog.nextLaneIndex -= frog.yDirection;
     }
   }
 
   // it's currently on the fly
   if (frog.state == DuringJump) {
-    // TODO interpolate t.y based on jumpingFrom/jumpingTo
     frog.stateProgress += (deltaTime / FROGGY_JUMPING_TIME);
 
     vec3_lerp(t.pos.vec, frog.jumpingFrom, frog.jumpingTo, sin(PI / 2 * frog.stateProgress));
@@ -86,6 +85,10 @@ DEF_ENTITY_SYSTEM(SimulateFroggy, A(Froggy) | A(Transform) | A(Collider))
       frog.stateProgress = 0;
       frog.state = WaitForJump;
       t.pos.z = 0;
+
+      if (frog.nextLaneIndex == -2 || frog.nextLaneIndex == state.currentLevel.params.laneCount + 1) {
+        frog.state = Done;
+      }
     }
   }
 
@@ -118,12 +121,13 @@ END_ENTITY_SYSTEM
 DEF_ENTITY_SYSTEM(UpdateFroggyForRender, A(Froggy) | A(Transform))
   ref froggy = getCmpE(Froggy);
   ref t = getCmpE(Transform);
-  mat4_rotateZ(t.orientation, mat4_identity(t.orientation),
+  mat4_identity(t.orientation);
+  mat4_rotateZ(t.orientation, t.orientation,
                toRadian(froggy.yDirection == Up ? 0 : 180));
 
-  // if (froggy.state == DuringJump) {
-  mat4_rotateX(t.orientation, t.orientation, cos(PI * (froggy.stateProgress - 0.5f)));
-  // }
+  if (froggy.state == DuringJump) {
+    mat4_rotateX(t.orientation, t.orientation, -cos(-PI / 2 + PI * (froggy.stateProgress)) * PI_180 * 15.0f);
+  }
 END_ENTITY_SYSTEM
 
 void initGame() {
@@ -154,8 +158,16 @@ bool onEvent(int eventType, int value) {
   else if (value == KEY_DOWN) {
     state.camera.pos.y += tw(0);
   }
-  else
+  else if (value == 107 /*KP_PLUS*/) {
+    state.camera.pos.z -= tw(0);
+  }
+  else if (value == 109 /*KP_MINUS*/) {
+    state.camera.pos.z += tw(0);
+  }
+  else {
+    _l(value);
     return false;
+  }
 
   return true;
 }
@@ -185,8 +197,6 @@ void render(float deltaTime) {
 
   // top left point is 0,0; center is width/2,height/2
   mat4_translate(getViewMatrix(), mat4_identity(getViewMatrix()), vec3_set(vec3Tmp, -canvasWidth / 2, -canvasHeight / 2, -canvasHeight / 2.0));
-
-  triangle(50, h / 2, zNear, 100, h / 2, zNear, 100, h, zNear);
 
   // TODO state.camera.dir
   float camZ = -state.camera.pos.z;
@@ -232,37 +242,18 @@ void render(float deltaTime) {
     const float roadHeight = level.render.roadHeight;
 
     // grass - top
-    setColors4(1,
-               0, 1, 0.04,
-               0, 1, 0.04,
-               0, 0.7, 0.04,
-               0, 0.7, 0.04);
     texQuad(TEXTURE_GRASS,
             0, 0, z, 0, 0,
-            0, grassHeight, z, 0, 1,
+            w, 0, z, w / grassHeight, 0,
             w, grassHeight, z, w / grassHeight, 1,
-            w, 0, z, w / grassHeight, 0);
+            0, grassHeight, z, 0, 1);
 
     // grass - bottom
-    setColors4(1,
-               0, 1, 0.04,
-               0, 0.7, 0.04,
-               0, 0.7, 0.04,
-               0, 1, 0.04);
-    texQuad(TEXTURE_GRASS,
-            0, h, z, 0, 0,
-            w, h, z, w / grassHeight, 0,
-            w, h - grassHeight, z, w / grassHeight, 1,
-            0, h - grassHeight, z, 0, 1);
+    texRect(TEXTURE_GRASS,
+            0, h - grassHeight, z, w, grassHeight,
+            w / grassHeight, 1.0f);
 
     float roadY = grassHeight + roadsideHeight;
-
-    float z2 = z - 40;
-    triangle(100, 100, z, 100, 300, z, 400, 300, z);
-    setColor(1, 1, 0, 0);
-    triangle(100, 100, z, 100, 300, z, 100, 100, z2);
-    setColor(1, 1, 0, 1);
-    triangle(100, 100, z2, 400, 300, z2, 400, 100, z2);
 
     // roadsides
     setColorLeftToRight(1, 0.6, 0.6, 0.6, 0.5, 0.5, 0.5);
@@ -290,10 +281,10 @@ void render(float deltaTime) {
     ref transform = getCmp(Transform, frog->id);
     ref collider = world.getComponent<Collider>(frog->id);
 
-    renderFrog(transform.pos.vec);
+    renderFrog(transform.pos.vec, transform.orientation);
 
-    setColor(1, 1, 0, 0);
-    debugRect(transform, collider);
+    // setColor(1, 1, 0, 0);
+    // debugRect(transform, collider);
   }
 
   // draw vehicles

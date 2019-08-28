@@ -27,6 +27,7 @@ const int MAX_VIEW_MATRIX_COUNT = 20;
 const int MAX_MODEL_MATRIX_COUNT = 20;
 const int SIZE_VIEW_MATRICES = (MAX_VIEW_MATRIX_COUNT + 1) * MATRIX_SIZE;   //stack of 20 view matrixes besides the 21th final matrix (on 0th index)
 const int SIZE_MODEL_MATRICES = (MAX_MODEL_MATRIX_COUNT + 1) * MATRIX_SIZE; //stack of 20 view matrixes besides the 21th final matrix (on 0th index)
+const int SIZE_NORMAL_MATRIX = MAT_SIZE_4 * FLOAT_SIZE;
 
 // internal memory
 const int SIZE_CURRENT_COLOR = 16 * sizeof(float);
@@ -52,9 +53,10 @@ void initEngine() {
   e.projectionMatrix = FLOAT_PTR(e.renderNormalBuffer, SIZE_RENDER_NORMAL_BUFFER);
   e.viewMatrix = FLOAT_PTR(e.projectionMatrix, SIZE_PROJECTION_MATRIX);
   e.modelMatrix = FLOAT_PTR(e.viewMatrix, SIZE_VIEW_MATRICES);
+  e.normalMatrix = FLOAT_PTR(e.modelMatrix, SIZE_MODEL_MATRICES);
 
   // internal memory
-  e.currentColor = FLOAT_PTR(e.modelMatrix, SIZE_MODEL_MATRICES);
+  e.currentColor = FLOAT_PTR(e.normalMatrix, SIZE_NORMAL_MATRIX);
   const int OFFSET_DYNAMIC_MEMORY = align((int)e.currentColor + SIZE_CURRENT_COLOR, 16);
 
   ret[0] = VALUES_PER_COLOR;
@@ -72,7 +74,8 @@ void initEngine() {
   ret[12] = (int)e.projectionMatrix;
   ret[13] = (int)e.viewMatrix;
   ret[14] = (int)e.modelMatrix;
-  ret[15] = OFFSET_DYNAMIC_MEMORY;
+  ret[15] = (int)e.normalMatrix;
+  ret[16] = OFFSET_DYNAMIC_MEMORY;
 }
 
 void beginFrame() {
@@ -109,6 +112,9 @@ void flushBuffers() {
       FLOAT_PTR(e.modelMatrix, e.currentModelMatrixIndex * MATRIX_SIZE),
       e.modelMatrix,
       MATRIX_SIZE);
+
+  mat4_invert(e.normalMatrix, mat4_multiply(mat4Tmp, e.modelMatrix, e.viewMatrix));
+  mat4_transpose(e.normalMatrix, e.normalMatrix);
 
   triggerDrawCall();
 
@@ -178,9 +184,9 @@ void setColorLeftToRight(
   setColors4(
       alpha,
       r1, g1, b1,
-      r1, g1, b1,
       r2, g2, b2,
-      r2, g2, b2);
+      r2, g2, b2,
+      r1, g1, b1);
 }
 
 float *getProjectionMatrix() {
@@ -243,13 +249,6 @@ void popModelMatrix() {
   e.currentModelMatrixIndex += 1;
 }
 
-// set the vertex normal for all other functions, like vertex(), tex/triangle(), tex/quad(), etc.
-void setCurrentVertexNormal(float x, float y, float z) {
-  e.currentVertexNormal[0] = x;
-  e.currentVertexNormal[1] = y;
-  e.currentVertexNormal[2] = z;
-}
-
 // does not reset the texture
 int vertex(float x, float y, float z) {
   int vertexCount = e.vertexCount;
@@ -258,10 +257,6 @@ int vertex(float x, float y, float z) {
   e.renderVertexBuffer[i] = x;
   e.renderVertexBuffer[i + 1] = y;
   e.renderVertexBuffer[i + 2] = z;
-
-  for (int j = 0; j < 3; ++j) {
-    e.renderNormalBuffer[i + j] = e.currentVertexNormal[j];
-  }
 
   i = vertexCount * VALUES_PER_COLOR;
   int j = 0;
@@ -276,6 +271,29 @@ int vertex(float x, float y, float z) {
 void index(int i) {
   e.renderIndexBuffer[e.indexCount] = i;
   e.indexCount += 1;
+}
+
+// vertices should
+void calculateTriangleNormal(uint firstVertexIndex, uint faceSize) {
+  static Vec3 u;
+  static Vec3 v;
+  uint i = firstVertexIndex * VALUES_PER_VERTEX;
+  float *faceVertices = e.renderVertexBuffer + i;
+  vec3_set(u.vec, faceVertices[3] - faceVertices[0], faceVertices[4] - faceVertices[1], faceVertices[5] - faceVertices[2]); //p2 - p1
+  vec3_set(v.vec, faceVertices[6] - faceVertices[0], faceVertices[7] - faceVertices[1], faceVertices[8] - faceVertices[2]); //p3 - p1
+  vec3_cross(u.vec, u.vec, v.vec);
+  float len = sqrt(u.x * u.x + u.y * u.y + u.z * u.z);
+  vec3_scale(u.vec, u.vec, 1.0f / len);
+
+  // _lfstr("nor.x", u.x);
+  // _lfstr("nor.y", u.y);
+  // _lfstr("nor.z", u.z);
+
+  for (int j = 0; j < faceSize; ++j) {
+    for (int k = 0; k < 3; ++k) {
+      e.renderNormalBuffer[i + j * 3 + k] = u.vec[k];
+    }
+  }
 }
 
 void triangle(
@@ -297,11 +315,7 @@ void triangle(
   e.renderVertexBuffer[i + 7] = v3y;
   e.renderVertexBuffer[i + 8] = v3z;
 
-  for (int j = 0; j < 3; ++j) {
-    for (int k = 0; k < 3; ++k) {
-      e.renderNormalBuffer[i + j * 3 + k] = e.currentVertexNormal[k];
-    }
-  }
+  calculateTriangleNormal(vertexCount, 3);
 
   i = vertexCount * VALUES_PER_COLOR;
   int j = 0;
@@ -341,11 +355,7 @@ void texTriangle(
   e.renderVertexBuffer[i + 7] = v3y;
   e.renderVertexBuffer[i + 8] = v3z;
 
-  for (int j = 0; j < 3; ++j) {
-    for (int k = 0; k < 3; ++k) {
-      e.renderNormalBuffer[i + j * 3 + k] = e.currentVertexNormal[k];
-    }
-  }
+  calculateTriangleNormal(vertexCount, 3);
 
   i = vertexCount * VALUES_PER_TEXCOORD;
   e.renderTexCoordsBuffer[i] = u1;
@@ -379,10 +389,9 @@ void quad(
   e.renderVertexBuffer[i + 1] = v4y;
   e.renderVertexBuffer[i + 2] = v4z;
 
-  for (int j = 0; j < 4; ++j) {
-    for (int k = 0; k < 3; ++k) {
-      e.renderNormalBuffer[i + j * 3 + k] = e.currentVertexNormal[k];
-    }
+  // copy the 4th normal vertex
+  for (int k = 0; k < 3; ++k) {
+    e.renderNormalBuffer[i + k] = e.renderNormalBuffer[i - 1 * 3 + k];
   }
 
   i = vertexCount * VALUES_PER_COLOR;
@@ -419,10 +428,9 @@ void texQuad(
   e.renderVertexBuffer[i + 1] = v4y;
   e.renderVertexBuffer[i + 2] = v4z;
 
-  for (int j = 0; j < 4; ++j) {
-    for (int k = 0; k < 3; ++k) {
-      e.renderNormalBuffer[i + j * 3 + k] = e.currentVertexNormal[k];
-    }
+  // copy the 4th normal vertex
+  for (int k = 0; k < 3; ++k) {
+    e.renderNormalBuffer[i + k] = e.renderNormalBuffer[i - 1 * 3 + k];
   }
 
   i = vertexCount * VALUES_PER_TEXCOORD;
@@ -455,16 +463,21 @@ int rgb(int r, int g, int b) {
 
 void rect(float x, float y, float z, float width, float height) {
   setTexture(-1);
-  quad(x, y, z, x, y + height, z, x + width, y + height, z, x + width, y, z);
+  // quad(x, y, z, x, y + height, z, x + width, y + height, z, x + width, y, z);
+  quad(
+      x, y, z,
+      x + width, y, z,
+      x + width, y + height, z,
+      x, y + height, z);
 }
 
 void texRect(int textureId, float x, float y, float z, float width, float height, float u1, float v1, float u0, float v0) {
   texQuad(
       textureId,
       x, y, z, u0, v0,
-      x, y + height, z, u0, v1,
+      x + width, y, z, u1, v0,
       x + width, y + height, z, u1, v1,
-      x + width, y, z, u1, v0);
+      x, y + height, z, u0, v1);
 }
 
 void setTweakValue(int index, float value) {

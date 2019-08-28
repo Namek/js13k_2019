@@ -155,8 +155,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
     
   
     /*================ Shaders ====================*/
-  
-    // Vertex shader source code
+
     const vertCode =
     'attribute vec3 pos;'+
     'attribute vec3 nor;'+
@@ -165,33 +164,40 @@ document.addEventListener("DOMContentLoaded", (event) => {
     'uniform mat4 projMat;'+
     'uniform mat4 viewMat;'+
     'uniform mat4 mdlMat;'+
-    'varying vec3 vNor;'+
+    'uniform mat4 norMat;'+
+    'varying vec3 vNor;'+//transposed(inversed(view*mdl))
     'varying vec4 vColor;'+
     'varying vec2 vTex;'+
-    'void main(void) {' +
-      'gl_Position = projMat * viewMat * mdlMat * vec4(pos, 1.0);' +
-      'vNor = nor;'+
+    'varying mat4 vMat;'+
+    'void main(void) {'+
+      'gl_Position = projMat * viewMat * mdlMat * vec4(pos, 1.0);'+
       'vColor = color;'+
       'vTex = texC;'+
+      'vMat = viewMat;'+
+      'vNor = normalize(vec3(norMat * vec4(nor, 1.0)));'+
     '}'
-  
-    // Create a vertex shader object
-    
+
     const fragCode =
-      'precision mediump float;'+
+      'precision highp float;'+
       'varying vec3 vNor;'+
       'varying vec4 vColor;'+
       'varying vec2 vTex;'+
+      'varying mat4 vMat;'+
       'uniform sampler2D tex;'+
       'uniform bool useTex;'+
       'void main(void) {'+
+        'vec4 color;'+
         'if (useTex) {'+
-          'gl_FragColor = texture2D(tex, vTex);'+
+          'color = texture2D(tex, vTex);'+
+          'color.a = 1.0;'+
         '}'+
         'else {'+
-          'gl_FragColor = vColor;'+
+          'color = vColor;'+
         '}'+
-        // TODO Phong lightning model based on normal vertex
+        'vec3 directionToLight = normalize(vec3(0, -0.1, 1));'+
+        'float lightStrength = max(0.35, dot(directionToLight, vNor));'+
+        'gl_FragColor.rgb = color.rgb * lightStrength;'+
+        'gl_FragColor.a = color.a;'+
       '}'
   
     const shaderProgram = linkShaders(gl, vertCode, fragCode)
@@ -314,8 +320,9 @@ document.addEventListener("DOMContentLoaded", (event) => {
     const OFFSET_PROJECTION_MATRIX = wasm_funcReturnValues[12]
     const OFFSET_VIEW_MATRIX = wasm_funcReturnValues[13]
     const OFFSET_MODEL_MATRIX = wasm_funcReturnValues[14]
+    const OFFSET_NORMAL_MATRIX = wasm_funcReturnValues[15]
 
-    const OFFSET_DYNAMIC_MEMORY = wasm_funcReturnValues[15]
+    const OFFSET_DYNAMIC_MEMORY = wasm_funcReturnValues[16]
     dynamicMemoryOffset = dynamicMemoryBreak = OFFSET_DYNAMIC_MEMORY
 
     const f32buffer = (offset, size) => new Float32Array(heap, offset, size)
@@ -327,10 +334,12 @@ document.addEventListener("DOMContentLoaded", (event) => {
     const wasm_projMatrix = f32buffer(OFFSET_PROJECTION_MATRIX, NUM_MATRIX4)
     const wasm_viewMatrix = f32buffer(OFFSET_VIEW_MATRIX, NUM_MATRIX4)
     const wasm_modelMatrix = f32buffer(OFFSET_MODEL_MATRIX, NUM_MATRIX4)
+    const wasm_normalMatrix = f32buffer(OFFSET_NORMAL_MATRIX, NUM_MATRIX4)
 
     const uProjMatrix = gl.getUniformLocation(shaderProgram, 'projMat')
     const uViewMatrix = gl.getUniformLocation(shaderProgram, 'viewMat')
     const uModelMatrix = gl.getUniformLocation(shaderProgram, 'mdlMat')
+    const uNormalMatrix = gl.getUniformLocation(shaderProgram, 'norMat');
     const uUseTexture = gl.getUniformLocation(shaderProgram, 'useTex')
   
   
@@ -368,6 +377,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
       gl.uniformMatrix4fv(uProjMatrix, false, wasm_projMatrix)
       gl.uniformMatrix4fv(uViewMatrix, false, wasm_viewMatrix)
       gl.uniformMatrix4fv(uModelMatrix, false, wasm_modelMatrix)
+      gl.uniformMatrix4fv(uNormalMatrix, false, wasm_normalMatrix)
       gl.uniform1i(uUseTexture, useTexture)
   
       gl.drawElements(gl_TRIANGLES, indexCount, gl_UNSIGNED_INT, 0)
