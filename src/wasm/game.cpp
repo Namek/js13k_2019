@@ -193,7 +193,7 @@ void render(float deltaTime) {
   const float zNear = 0;
 
   // axis X goes right, axis Y goes down, axis Z goes towards viewer
-  mat4_perspective(getProjectionMatrix(), fieldOfView, aspectRatio, 1, 1000.0);
+  mat4_perspective(getProjectionMatrix(), fieldOfView, aspectRatio, 1, 2000.0);
   mat4_multiply(getProjectionMatrix(), getProjectionMatrix(), mat4_fromScaling(mat4Tmp, vec3_set(vec3Tmp, 1, -1, 1)));
 
   // top left point is 0,0; center is width/2,height/2
@@ -242,28 +242,32 @@ void render(float deltaTime) {
     const float grassHeight = level.render.grassHeight;
     const float roadHeight = level.render.roadHeight;
 
+    const float roadWidth = w * 4;
+    const float roadLeft = -roadWidth/2 + w2;
+    const float roadRight = roadWidth/2 + w2;
+
     // grass - top
     texQuad(TEXTURE_GRASS,
-            0, 0, z, 0, 0,
-            w, 0, z, w / grassHeight, 0,
-            w, grassHeight, z, w / grassHeight, 1,
-            0, grassHeight, z, 0, 1);
+            roadLeft, 0, z, 0, 0,
+            roadRight, 0, z, roadWidth / grassHeight, 0,
+            roadRight, grassHeight, z, roadWidth / grassHeight, 1,
+            roadLeft, grassHeight, z, 0, 1);
 
     // grass - bottom
     texRect(TEXTURE_GRASS,
-            0, h - grassHeight, z, w, grassHeight,
-            w / grassHeight, 1.0f);
+            roadLeft, h - grassHeight, z, roadWidth, grassHeight,
+            roadWidth / grassHeight, 1.0f);
 
     float roadY = grassHeight + roadsideHeight;
 
     // roadsides
     setColorLeftToRight(1, 0.6, 0.6, 0.6, 0.5, 0.5, 0.5);
-    rect(0, roadY - roadsideHeight, z, w, roadsideHeight);
-    rect(0, roadY + roadHeight, z, w, roadsideHeight);
+    rect(roadLeft, roadY - roadsideHeight, z, roadWidth, roadsideHeight);
+    rect(roadLeft, roadY + roadHeight, z, roadWidth, roadsideHeight);
 
     // black road
     setColorLeftToRight(1, 0.1, 0.1, 0.1, 0, 0, 0);
-    rect(0, roadY, z, w, roadHeight);
+    rect(roadLeft, roadY, z, roadWidth, roadHeight);
 
     // lane gaps - top to bottom
     float laneY = roadY + roadHeight;
@@ -271,7 +275,7 @@ void render(float deltaTime) {
       laneY -= (laneHeight + lanesGap);
 
       setColor(1, 1, 1, 1);
-      rect(0, laneY, z, w, lanesGap);
+      rect(roadLeft, laneY, z, roadWidth, lanesGap);
     }
   }
 
