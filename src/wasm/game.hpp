@@ -216,7 +216,7 @@ void initLevel(int levelIndex);
 float calcCenterX(float onLanePercent);
 float calcCenterYForLane(int laneIndex);
 Lane &getLaneForVehicle(Level &level, Vehicle &vehicle);
-bool isAnyVehicleOnSight(EcsWorld &world, float x, float y, float xDir, float yDir, float rayWidth);
+bool isAnyVehicleOnSight(uint laneIndex, float x, float y, float rayWidth);
 
 // debug
 void debugRect(Transform &t, Collider &c);

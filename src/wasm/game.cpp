@@ -6,6 +6,7 @@
 GameState state;
 const float FROGGY_JUMPING_TIME = 0.4f;
 const float FROGGY_JUMP_AMPLITUDE = 4.5f;
+const float FROGGY_AI_RAY_FACTOR_TO_WIDTH_FOR_NO_JUMP = 2.5f;
 
 DEF_ENTITY_SYSTEM(SimulateVehicle, A(Vehicle))
   ref v = getCmpE(Vehicle);
@@ -63,7 +64,7 @@ DEF_ENTITY_SYSTEM(SimulateFroggy, A(Froggy) | A(Transform) | A(Collider))
 
   // jump if there is no vehicle on sight
   if (frog.state == InitJump) {
-    if (!isAnyVehicleOnSight(world, t.pos.x, t.pos.y, 0, -1, c.width * 2)) {
+    if (!isAnyVehicleOnSight(frog.nextLaneIndex, t.pos.x, t.pos.y, c.width * FROGGY_AI_RAY_FACTOR_TO_WIDTH_FOR_NO_JUMP)) {
       frog.state = DuringJump;
       frog.stateProgress = 0;
       frog.jumpingFrom[X] = t.pos.x;

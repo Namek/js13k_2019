@@ -77,10 +77,11 @@ void initLevel(int levelIndex) {
       1, 1, 1, -0.2,
       1, 1, 0.8, 0.4,
       0, 2, 0.8, 0.9,
-      1, 3, 1.0, 0.9,
+      1, 3, 1.0, 1.2,
     };
     // clang-format on
-    for (int i = 0; i < 5; ++i) {
+    uint n = (uint)sizeof(vehicleParams) / sizeof(float) / 4;
+    for (int i = 0; i < n; ++i) {
       const float *vparams = vehicleParams + i * 4;
       newVehicleConfig(levelParams, vehiclesStatic + (int)vparams[0], (int)vparams[1], vparams[2], vparams[3]);
     }
