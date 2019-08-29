@@ -9,8 +9,10 @@ WASM_EXPORT int *preinit(void *memoryBase);
 WASM_EXPORT void generateTextures();
 WASM_EXPORT void initEngine();
 WASM_EXPORT void render(float deltaTime);
-WASM_EXPORT void setTweakValue(int index, float value);
 WASM_EXPORT bool onEvent(int eventType, int value);
+#ifndef PRODUCTION
+WASM_EXPORT void setTweakValue(int index, float value);
+#endif
 
 extern float getCanvasWidth();
 extern float getCanvasHeight();
@@ -41,7 +43,9 @@ struct EngineState {
 
   // internal memory
   , *currentColor
+  #ifndef PRODUCTION
   , tweakValues[10]
+  #endif
   ;
 
   int
@@ -67,7 +71,11 @@ const int KEY_RIGHT = 39;
 const int KEY_DOWN = 40;
 const int KEY_SPACE = 32;
 
-#define tw(index) engineState.tweakValues[index]
+#ifndef PRODUCTION
+#define tw(index, defaultValue) engineState.tweakValues[index]
+#else
+#define tw(index, defaultValue) defaultValue
+#endif
 
 float *getProjectionMatrix();
 float *getViewMatrix();

@@ -20,8 +20,8 @@ const readdirSync = (p, a = []) => {
 	return a
 }
 
-function exec(cmd, args) {
-	return spawn(cmd, args, {shell: true, stdio: "inherit"})
+function exec(cmd, args, env) {
+	return spawn(cmd, args, {shell: true, stdio: "inherit", env: env || process.env})
 }
 
 //Chalk colors
@@ -31,7 +31,7 @@ var regular = chalk.white;
 
 
 var isProduction = false
-const approximatedSizeReductionOnProductionRemovals = 1134
+const approximatedSizeReductionOnProductionRemovals = 1469
 
 
 gulp.task('watch-only', (done) => {
@@ -99,6 +99,10 @@ gulp.task('build-cpp', (done) => {
 
 	console.log("Compiling: " + cppFiles.join(" "))
 
+	let env = Object.assign({}, process.env)
+	if (isProduction) {
+		env['EMMAKEN_CFLAGS'] = "-DPRODUCTION"
+	}
 	if (exec('em++', args(`
 		${cppFiles.join(" ")}
 		-o ${destPath}
@@ -110,7 +114,7 @@ gulp.task('build-cpp', (done) => {
 		-s ONLY_MY_CODE=1
 		-s "EXPORTED_FUNCTIONS=[${exportedFunctions}]"
 		-s TOTAL_MEMORY=16MB
-	`)).status == 0) {
+	`), env).status == 0) {
 		// exec('wasm2wat', args(`
 		// 	${destPath}
 		// 	--output=${destPath}.wat

@@ -184,22 +184,22 @@ bool onEvent(int eventType, int value) {
   else if (value == KEY_RIGHT) {
   }
   else if (value == 102 /*KP_RIGHT*/) {
-    state.camera.pos.x += tw(0);
+    state.camera.pos.x += tw(0, 10);
   }
   else if (value == 100 /*KP_LEFT*/) {
-    state.camera.pos.x -= tw(0);
+    state.camera.pos.x -= tw(0, 10);
   }
   else if (value == 104 /*KP_UP*/) {
-    state.camera.pos.y -= tw(0);
+    state.camera.pos.y -= tw(0, 10);
   }
   else if (value == 98 /*KP_DOWN*/) {
-    state.camera.pos.y += tw(0);
+    state.camera.pos.y += tw(0, 10);
   }
   else if (value == 107 /*KP_PLUS*/) {
-    state.camera.pos.z -= tw(0);
+    state.camera.pos.z -= tw(0, 10);
   }
   else if (value == 109 /*KP_MINUS*/) {
-    state.camera.pos.z += tw(0);
+    state.camera.pos.z += tw(0, 10);
   }
   else {
     _l(value);
@@ -310,7 +310,7 @@ void render(float deltaTime) {
 
   // process logic with ECS World
   EcsWorld &world = state.ecsWorld;
-  world.deltaTime = deltaTime * tw(2);
+  world.deltaTime = deltaTime * tw(2, 1.0f);
 
   Phase phase = state.phase;
 
@@ -324,7 +324,7 @@ void render(float deltaTime) {
     _lstr("recorded frames", state.recordedFrames.size);
   }
   else if (phase == RewindAnimation) {
-    float dtLeft = (state.rewindCurrentFrameDtLeft + deltaTime) * REWIND_TIME_FACTOR * tw(2);
+    float dtLeft = (state.rewindCurrentFrameDtLeft + deltaTime) * REWIND_TIME_FACTOR * tw(2, 1.0f);
 
     uint frameIndex = state.currentFrame;
     while (dtLeft >= 0 && frameIndex > 0) {
@@ -338,7 +338,7 @@ void render(float deltaTime) {
       state.phase = Playing;
   }
   else if (phase == Playing) {
-    int goToFrame = (int)tw(1);
+    int goToFrame = (int)tw(1, 0);
     if (goToFrame >= 0) {
       loadFrame(goToFrame);
     }

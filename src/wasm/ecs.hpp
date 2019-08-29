@@ -114,7 +114,7 @@ struct EcsWorld {
     }
 #ifndef PRODUCTION
     _lstr("entity_not_found", aspectIncludes);
-    // TODO call abort()
+    _abort("entity_not_found");
 #endif
     return 0;
   }

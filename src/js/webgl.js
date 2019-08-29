@@ -77,6 +77,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
     return ret;
   }
 
+  //removeIf(production)
   const readTextFromMemory = (strPtr) => {
     let str = "";
     let buf = new Uint8Array(memory.buffer, strPtr, 100)
@@ -94,7 +95,6 @@ document.addEventListener("DOMContentLoaded", (event) => {
     // key is name, value is DOM element
   }
   const logStr = (strPtr, num) => {
-    //removeIf(production)
     let str = readTextFromMemory(strPtr)
     let el = debugValues[str]
     if (!el) {
@@ -105,9 +105,8 @@ document.addEventListener("DOMContentLoaded", (event) => {
     }
     el.innerText = "- " + str + ': ' + num
     // log("logstr:", str, num);
-    //endRemoveIf(production)
   }
-
+  //endRemoveIf(production)
   
   const loadProgram = (wasmProgram) => {
     const getCanvasWidth = () => canvas.width
@@ -122,11 +121,13 @@ document.addEventListener("DOMContentLoaded", (event) => {
       table: new WebAssembly.Table({ initial: 0, element: 'anyfunc' }),
       _getCanvasWidth:getCanvasWidth,
       _getCanvasHeight:getCanvasHeight,
+      //removeIf(production)
       __abort: abort,
       __l: log, //int
       __lf: log,//float
       __lstr: logStr,
       __lfstr: logStr,
+      //endRemoveIf(production)
       _randomf: Math.random,
       _clearFrame: () => clearFrame(),
       _triggerDrawCall: () => performDrawCall(),

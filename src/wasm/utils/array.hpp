@@ -37,7 +37,9 @@ struct Array {
   uint size;
 
   Array() {
+#ifndef PRODUCTION
     elementSize = 0;
+#endif
   }
 
   // TODO implement dynamic resize and handle holes after removed elements

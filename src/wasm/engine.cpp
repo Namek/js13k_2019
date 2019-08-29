@@ -482,6 +482,8 @@ void texRect(int textureId, float x, float y, float z, float width, float height
       x, y + height, z, u0, v1);
 }
 
+#ifndef PRODUCTION
 void setTweakValue(int index, float value) {
   e.tweakValues[index] = value;
 }
+#endif
