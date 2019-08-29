@@ -36,6 +36,10 @@ struct Array {
   public:
   uint size;
 
+  Array() {
+    elementSize = 0;
+  }
+
   // TODO implement dynamic resize and handle holes after removed elements
 
   void init(int elementSize) {
@@ -49,6 +53,17 @@ struct Array {
   }
 
   char *getPointer(int index) {
+#ifndef PRODUCTION
+    if (elementSize == 0) {
+      _abort("this array was not initialized");
+    }
+
+    // TODO support more blocks
+    if (index >= block_size) {
+      _abort("Array::blocks not implemented");
+    }
+#endif
+
     // TODO check size of blocks, use other block if needed
     return blocks[0].data + index * elementSize;
   }

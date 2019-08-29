@@ -7,15 +7,11 @@ GameState state;
 const float FROGGY_JUMPING_TIME = 0.4f;
 const float FROGGY_JUMP_AMPLITUDE = 4.5f;
 const float FROGGY_AI_RAY_FACTOR_TO_WIDTH_FOR_NO_JUMP = 2.5f;
+const float REWIND_TIME_FACTOR = 3.5f;
 
 DEF_ENTITY_SYSTEM(SimulateVehicle, A(Vehicle))
   ref v = getCmpE(Vehicle);
   ref vt = getCmpE(Transform);
-
-  // save frame
-  auto newFrame = (VehicleTimeFrame *)v.paramsDynamicSimulatedFrames.createPtrAt(state.currentFrame);
-  newFrame->transform = vt;
-  newFrame->params = v.paramsDynamicCurrent;
 
   // change speed due to player's settings
   ref speedChangeFactor = v.paramsConfiguredByPlayer.speedChangeFactor;
@@ -41,50 +37,11 @@ DEF_ENTITY_SYSTEM(SimulateVehicle, A(Vehicle))
   }
 END_ENTITY_SYSTEM
 
-DEF_ENTITY_SYSTEM(CheckCollisions, A(Collider) | A(Transform))
-  ref t1 = getCmpE(Transform);
-  ref c1 = getCmpE(Collider);
-  ref entity1Id = entity.id;
-  float x1 = t1.pos.x - c1.width / 2;
-  float y1 = t1.pos.y - c1.height / 2;
-
-  FOR_EACH_ENTITY(world, A(Collider) | A(Transform))
-    if (entity.id == entity1Id) {
-      // don't check on yourself
-      continue;
-    }
-
-    ref t2 = getCmpE(Transform);
-    ref c2 = getCmpE(Collider);
-
-    float x2 = t2.pos.x - c2.width / 2;
-    float y2 = t2.pos.y - c2.height / 2;
-
-    // we're doing 2d top-down collision check here, so ignoring 'z' coord
-    if (x1 < x2 + c2.width &&
-        x1 + c1.width > x2 &&
-        y1 < y2 + c2.height &&
-        y1 + c1.height > y2) {
-      _lstr("state.phase", Rewind);
-      state.phase = Rewind;
-    }
-
-    // TODO if anyone collides then change game Phase to Rewind
-
-  END_FOR_EACH
-
-END_ENTITY_SYSTEM
-
 DEF_ENTITY_SYSTEM(SimulateFroggy, A(Froggy) | A(Transform) | A(Collider))
   ref frog = getCmpE(Froggy);
   ref t = getCmpE(Transform);
   ref c = getCmpE(Collider);
   ref fstate = frog.state;
-
-  // save frame
-  auto newFrame = (FroggyTimeFrame *)frog.simulatedFrames.createPtrAt(state.currentFrame);
-  newFrame->transform = t;
-  newFrame->state = fstate;
 
   // cast ray upfront over the road with small amount of timing prediction (wider ray)
   if (fstate.phase == WaitForJump) {
@@ -131,6 +88,37 @@ DEF_ENTITY_SYSTEM(SimulateFroggy, A(Froggy) | A(Transform) | A(Collider))
   // TODO record a state frame
 END_ENTITY_SYSTEM
 
+DEF_ENTITY_SYSTEM(CheckCollisions, A(Collider) | A(Transform))
+  ref t1 = getCmpE(Transform);
+  ref c1 = getCmpE(Collider);
+  ref entity1Id = entity.id;
+  float x1 = t1.pos.x - c1.width / 2;
+  float y1 = t1.pos.y - c1.height / 2;
+
+  FOR_EACH_ENTITY(world, A(Collider) | A(Transform))
+    if (entity.id == entity1Id) {
+      // don't check on yourself
+      continue;
+    }
+
+    ref t2 = getCmpE(Transform);
+    ref c2 = getCmpE(Collider);
+
+    float x2 = t2.pos.x - c2.width / 2;
+    float y2 = t2.pos.y - c2.height / 2;
+
+    // we're doing 2d top-down collision check here, so ignoring 'z' coord
+    if (x1 < x2 + c2.width &&
+        x1 + c1.width > x2 &&
+        y1 < y2 + c2.height &&
+        y1 + c1.height > y2) {
+      _lstr("state.phase", RewindAnimation);
+      state.phase = RewindAnimation;
+      state.rewindCurrentFrameDtLeft = 0;
+    }
+  END_FOR_EACH
+END_ENTITY_SYSTEM
+
 DEF_ENTITY_SYSTEM(UpdateVehiclePositionForRender, A(Vehicle) | A(Transform))
   ref t = getCmpE(Transform);
   ref v = getCmpE(Vehicle);
@@ -166,6 +154,8 @@ DEF_ENTITY_SYSTEM(UpdateFroggyForRender, A(Froggy) | A(Transform))
   }
 END_ENTITY_SYSTEM
 
+void recordFrame(float deltaTime);
+
 void initGame() {
   state.levelGarbage.init(sizeof(void *));
   int sizes[] = COMPONENT_TYPE_SIZES;
@@ -176,7 +166,8 @@ void initGame() {
   initLevel(0);
   state.phase = Simulate; // Intro;
   state.currentFrame = 0;
-  state.recordedFrameCount = 0;
+  state.recordedFrames.init(sizeof(RecordedFrame));
+  recordFrame(0);
 }
 
 bool onEvent(int eventType, int value) {
@@ -214,6 +205,73 @@ bool onEvent(int eventType, int value) {
     _l(value);
     return false;
   }
+
+  return true;
+}
+
+void recordFrame(float deltaTime) {
+  ref world = state.ecsWorld;
+
+  FOR_EACH_ENTITY(world, A(Vehicle) | A(Transform))
+    ref v = getCmpE(Vehicle);
+    ref vt = getCmpE(Transform);
+
+    auto newFrame = (VehicleTimeFrame *)v.paramsDynamicSimulatedFrames.createPtrAt(state.currentFrame);
+    newFrame->transform = vt;
+    newFrame->params = v.paramsDynamicCurrent;
+  END_FOR_EACH
+
+  FOR_EACH_ENTITY(world, A(Froggy) | A(Transform))
+    ref frog = getCmpE(Froggy);
+    ref t = getCmpE(Transform);
+    ref fstate = frog.state;
+
+    auto newFrame = (FroggyTimeFrame *)frog.simulatedFrames.createPtrAt(state.currentFrame);
+    newFrame->transform = t;
+    newFrame->state = fstate;
+    _lfstr("rec/frog.pos.y", newFrame->transform.pos.y);
+  END_FOR_EACH
+
+  state.currentFrame += 1;
+
+  auto frame = (RecordedFrame *)state.recordedFrames.createPtr();
+  frame->deltaTime = deltaTime;
+}
+
+bool loadFrame(int frameIndex) {
+  if (frameIndex >= state.recordedFrames.size)
+    return false;
+
+  state.currentFrame = frameIndex;
+  _lstr("load/frame", state.currentFrame);
+
+  ref world = state.ecsWorld;
+
+  FOR_EACH_ENTITY(world, A(Vehicle) | A(Transform))
+    ref v = getCmpE(Vehicle);
+    ref vt = getCmpE(Transform);
+
+    auto frame = (VehicleTimeFrame *)v.paramsDynamicSimulatedFrames.getPointer(state.currentFrame);
+    vt.pos = frame->transform.pos;
+    memcpy(frame->transform.orientation, vt.orientation, MAT_SIZE_4 * sizeof(float));
+    v.paramsDynamicCurrent = frame->params;
+  END_FOR_EACH
+
+  FOR_EACH_ENTITY(world, A(Froggy) | A(Transform))
+    ref frog = getCmpE(Froggy);
+    ref ft = getCmpE(Transform);
+    ref fstate = frog.state;
+
+    auto frame = (FroggyTimeFrame *)frog.simulatedFrames.getPointer(state.currentFrame);
+
+
+
+    ft.pos = frame->transform.pos;
+    memcpy(frame->transform.orientation, ft.orientation, MAT_SIZE_4 * sizeof(float));
+    frog.state = frame->state;
+
+    _lfstr("load/frog.pos.y", frame->transform.pos.y);
+  END_FOR_EACH
 
   return true;
 }
@@ -260,13 +318,31 @@ void render(float deltaTime) {
     SimulateVehicle(world);
     SimulateFroggy(world);
     CheckCollisions(world);
-    state.currentFrame += 1;
-    state.recordedFrameCount += 1;
-    _lstr("recored frames", state.recordedFrameCount);
+    if (phase == Simulate) {
+      recordFrame(deltaTime);
+    }
+    _lstr("recorded frames", state.recordedFrames.size);
   }
-  else if (phase == Rewind) {
+  else if (phase == RewindAnimation) {
+    float dtLeft = (state.rewindCurrentFrameDtLeft + deltaTime) * REWIND_TIME_FACTOR * tw(2);
+
+    uint frameIndex = state.currentFrame;
+    while (dtLeft >= 0 && frameIndex > 0) {
+      auto frame = (RecordedFrame *)state.recordedFrames.getPtr(frameIndex--);
+      dtLeft -= frame->deltaTime;
+    }
+    state.rewindCurrentFrameDtLeft = -dtLeft;
+    loadFrame(frameIndex);
+
+    if (state.currentFrame == 0)
+      state.phase = Playing;
   }
   else if (phase == Playing) {
+    int goToFrame = (int)tw(1);
+    if (goToFrame >= 0) {
+      loadFrame(goToFrame);
+    }
+    // TODO
   }
   UpdateVehiclePositionForRender(world);
   UpdateFroggyForRender(world);

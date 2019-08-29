@@ -13,12 +13,13 @@ typedef unsigned int uint;
 #define ref auto &
 
 extern "C" {
+extern void _abort(const char *text);
 extern void _l(int);    //logging int
 extern void _lf(float); //logging float
 extern void _lstr(const char *text, int num);
 extern void _lfstr(const char *text, float num);
-extern float randomf(); // returns 0..1 float. 'f' suffix is here because of collision with stdlib function
 
+extern float randomf(); // returns 0..1 float. 'f' suffix is here because of collision with stdlib function
 extern int round(float);
 extern int floor(float);
 extern int ceil(float);

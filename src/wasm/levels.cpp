@@ -100,6 +100,7 @@ void initLevel(int levelIndex) {
     froggy.state.phase = WaitForJump;
     froggy.state.phaseProgress = 0;
     froggy.state.yDirection = state.currentLevel.params.froggyDirection;
+    froggy.simulatedFrames.init(sizeof(FroggyTimeFrame));
     bool isGoingUp = froggy.state.yDirection == Up;
     froggy.state.nextLaneIndex = isGoingUp ? -1 : state.currentLevel.params.laneCount;
 

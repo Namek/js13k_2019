@@ -46,7 +46,7 @@ enum VehicleType
   NormalCar,
   FastCar,
   SuperFastCar,
-  TIR
+  WoodTIR
 };
 
 // unchangable parameters of a vehicle
@@ -156,10 +156,10 @@ END_COMPONENT
 enum Phase
 {
   Intro,
-  LevelPresentation, //showing level number, some text
-  Playing,
-  Simulate,
-  Rewind,
+  LevelPresentation, // showing level number, some text
+  Playing,           // gameplay: player configures things
+  Simulate,          // calculate world state for next frame
+  RewindAnimation,   // when it finishes goes to Playing
 };
 
 struct Lane {
@@ -196,6 +196,12 @@ struct Camera {
   Vec3 dir;
 };
 
+struct RecordedFrame {
+  float deltaTime;
+
+  // the rest of frame data is within Vehicle cmp and Froggy cmp
+};
+
 struct GameState {
   EcsWorld ecsWorld;
   Level currentLevel;
@@ -205,7 +211,9 @@ struct GameState {
 
   // applies for animation when phase==Rewind
   uint currentFrame;
-  uint recordedFrameCount;
+  Array /* of RecordedFrame */ recordedFrames;
+  float rewindCurrentFrameDtLeft;
+
   int selectedVehicleEntityId;
 
   // collection of pointers to be free()d up after level finishes

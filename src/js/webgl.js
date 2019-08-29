@@ -77,11 +77,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
     return ret;
   }
 
-  const debugValues = {
-    // key is name, value is DOM element
-  }
-  const logStr = (strPtr, num) => {
-    //removeIf(production)
+  const readTextFromMemory = (strPtr) => {
     let str = "";
     let buf = new Uint8Array(memory.buffer, strPtr, 100)
 
@@ -89,6 +85,17 @@ document.addEventListener("DOMContentLoaded", (event) => {
     while (buf[++i] != 0)
       str += String.fromCharCode(buf[i])
 
+    return str
+  }
+  const abort = (strPtr) => {
+    throw new Error(readTextFromMemory(strPtr))
+  }
+  const debugValues = {
+    // key is name, value is DOM element
+  }
+  const logStr = (strPtr, num) => {
+    //removeIf(production)
+    let str = readTextFromMemory(strPtr)
     let el = debugValues[str]
     if (!el) {
       el = document.createElement("p")
@@ -115,6 +122,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
       table: new WebAssembly.Table({ initial: 0, element: 'anyfunc' }),
       _getCanvasWidth:getCanvasWidth,
       _getCanvasHeight:getCanvasHeight,
+      __abort: abort,
       __l: log, //int
       __lf: log,//float
       __lstr: logStr,
@@ -277,7 +285,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
       }
       let i = 0
       createInput("cameraChange", i++, 10)
-      createSwitch("simulate", i++, [0, 3])//3==Simulate
+      createInput("go to frame:", i++, -1, 1)
       createInput("time speed", i++, 1, 0.1)
     }
     //endRemoveIf(production)
