@@ -12,6 +12,11 @@ DEF_ENTITY_SYSTEM(SimulateVehicle, A(Vehicle))
   ref v = getCmpE(Vehicle);
   ref vt = getCmpE(Transform);
 
+  // save frame
+  auto newFrame = (VehicleTimeFrame *)v.paramsDynamicSimulatedFrames.createPtrAt(state.currentFrame);
+  newFrame->transform = vt;
+  newFrame->params = v.paramsDynamicCurrent;
+
   // change speed due to player's settings
   ref speedChangeFactor = v.paramsConfiguredByPlayer.speedChangeFactor;
   if (speedChangeFactor != 0) {
@@ -34,15 +39,39 @@ DEF_ENTITY_SYSTEM(SimulateVehicle, A(Vehicle))
     // TODO
     // v.paramsDynamicCurrent.changingLaneProgress
   }
-
-  // TODO save frame
 END_ENTITY_SYSTEM
 
 DEF_ENTITY_SYSTEM(CheckCollisions, A(Collider) | A(Transform))
-  ref collider = getCmpE(Collider);
-  ref transform = getCmpE(Transform);
+  ref t1 = getCmpE(Transform);
+  ref c1 = getCmpE(Collider);
+  ref entity1Id = entity.id;
+  float x1 = t1.pos.x - c1.width / 2;
+  float y1 = t1.pos.y - c1.height / 2;
 
-  // TODO if anyone collides then change game Phase to Rewind
+  FOR_EACH_ENTITY(world, A(Collider) | A(Transform))
+    if (entity.id == entity1Id) {
+      // don't check on yourself
+      continue;
+    }
+
+    ref t2 = getCmpE(Transform);
+    ref c2 = getCmpE(Collider);
+
+    float x2 = t2.pos.x - c2.width / 2;
+    float y2 = t2.pos.y - c2.height / 2;
+
+    // we're doing 2d top-down collision check here, so ignoring 'z' coord
+    if (x1 < x2 + c2.width &&
+        x1 + c1.width > x2 &&
+        y1 < y2 + c2.height &&
+        y1 + c1.height > y2) {
+      _lstr("state.phase", Rewind);
+      state.phase = Rewind;
+    }
+
+    // TODO if anyone collides then change game Phase to Rewind
+
+  END_FOR_EACH
 
 END_ENTITY_SYSTEM
 
@@ -50,45 +79,51 @@ DEF_ENTITY_SYSTEM(SimulateFroggy, A(Froggy) | A(Transform) | A(Collider))
   ref frog = getCmpE(Froggy);
   ref t = getCmpE(Transform);
   ref c = getCmpE(Collider);
+  ref fstate = frog.state;
+
+  // save frame
+  auto newFrame = (FroggyTimeFrame *)frog.simulatedFrames.createPtrAt(state.currentFrame);
+  newFrame->transform = t;
+  newFrame->state = fstate;
 
   // cast ray upfront over the road with small amount of timing prediction (wider ray)
-  if (frog.state == WaitForJump) {
-    if (frog.stateProgress >= 1.0) {
-      frog.state = InitJump;
-      frog.stateProgress = 0;
+  if (fstate.phase == WaitForJump) {
+    if (fstate.phaseProgress >= 1.0) {
+      fstate.phase = InitJump;
+      fstate.phaseProgress = 0;
     }
     else {
-      frog.stateProgress += (deltaTime / frog.froggyThinkingTime);
+      fstate.phaseProgress += (deltaTime / state.currentLevel.params.froggyThinkingTime);
     }
   }
 
   // jump if there is no vehicle on sight
-  if (frog.state == InitJump) {
-    if (!isAnyVehicleOnSight(frog.nextLaneIndex, t.pos.x, t.pos.y, c.width * FROGGY_AI_RAY_FACTOR_TO_WIDTH_FOR_NO_JUMP)) {
-      frog.state = DuringJump;
-      frog.stateProgress = 0;
-      frog.jumpingFrom[X] = t.pos.x;
-      frog.jumpingFrom[Y] = t.pos.y;
-      frog.jumpingTo[X] = t.pos.x;
-      frog.jumpingTo[Y] = calcCenterYForLane(frog.nextLaneIndex);
-      frog.nextLaneIndex -= frog.yDirection;
+  if (fstate.phase == InitJump) {
+    if (!isAnyVehicleOnSight(fstate.nextLaneIndex, t.pos.x, t.pos.y, c.width * FROGGY_AI_RAY_FACTOR_TO_WIDTH_FOR_NO_JUMP)) {
+      fstate.phase = DuringJump;
+      fstate.phaseProgress = 0;
+      fstate.jumpingFrom[X] = t.pos.x;
+      fstate.jumpingFrom[Y] = t.pos.y;
+      fstate.jumpingTo[X] = t.pos.x;
+      fstate.jumpingTo[Y] = calcCenterYForLane(fstate.nextLaneIndex);
+      fstate.nextLaneIndex -= fstate.yDirection;
     }
   }
 
   // it's currently on the fly
-  if (frog.state == DuringJump) {
-    frog.stateProgress += (deltaTime / FROGGY_JUMPING_TIME);
+  if (fstate.phase == DuringJump) {
+    fstate.phaseProgress += (deltaTime / FROGGY_JUMPING_TIME);
 
-    vec3_lerp(t.pos.vec, frog.jumpingFrom, frog.jumpingTo, sin(PI / 2 * frog.stateProgress));
-    t.pos.z = sin(PI * frog.stateProgress) * FROGGY_JUMP_AMPLITUDE;
+    vec3_lerp(t.pos.vec, fstate.jumpingFrom, fstate.jumpingTo, sin(PI / 2 * fstate.phaseProgress));
+    t.pos.z = sin(PI * fstate.phaseProgress) * FROGGY_JUMP_AMPLITUDE;
 
-    if (frog.stateProgress >= 1.0f) {
-      frog.stateProgress = 0;
-      frog.state = WaitForJump;
+    if (fstate.phaseProgress >= 1.0f) {
+      fstate.phaseProgress = 0;
+      fstate.phase = WaitForJump;
       t.pos.z = 0;
 
-      if (frog.nextLaneIndex == -2 || frog.nextLaneIndex == state.currentLevel.params.laneCount + 1) {
-        frog.state = Done;
+      if (fstate.nextLaneIndex == -2 || fstate.nextLaneIndex == state.currentLevel.params.laneCount + 1) {
+        fstate.phase = Done;
       }
     }
   }
@@ -124,10 +159,10 @@ DEF_ENTITY_SYSTEM(UpdateFroggyForRender, A(Froggy) | A(Transform))
   ref t = getCmpE(Transform);
   mat4_identity(t.orientation);
   mat4_rotateZ(t.orientation, t.orientation,
-               toRadian(froggy.yDirection == Up ? 0 : 180));
+               toRadian(froggy.state.yDirection == Up ? 0 : 180));
 
-  if (froggy.state == DuringJump) {
-    mat4_rotateX(t.orientation, t.orientation, -cos(-PI / 2 + PI * (froggy.stateProgress)) * PI_180 * 15.0f);
+  if (froggy.state.phase == DuringJump) {
+    mat4_rotateX(t.orientation, t.orientation, -cos(-PI / 2 + PI * (froggy.state.phaseProgress)) * PI_180 * 15.0f);
   }
 END_ENTITY_SYSTEM
 
@@ -140,6 +175,8 @@ void initGame() {
 
   initLevel(0);
   state.phase = Simulate; // Intro;
+  state.currentFrame = 0;
+  state.recordedFrameCount = 0;
 }
 
 bool onEvent(int eventType, int value) {
@@ -148,15 +185,23 @@ bool onEvent(int eventType, int value) {
   }
 
   if (value == KEY_RIGHT) {
-    state.camera.pos.x += tw(0);
   }
   else if (value == KEY_LEFT) {
-    state.camera.pos.x -= tw(0);
   }
   else if (value == KEY_UP) {
+  }
+  else if (value == KEY_RIGHT) {
+  }
+  else if (value == 102 /*KP_RIGHT*/) {
+    state.camera.pos.x += tw(0);
+  }
+  else if (value == 100 /*KP_LEFT*/) {
+    state.camera.pos.x -= tw(0);
+  }
+  else if (value == 104 /*KP_UP*/) {
     state.camera.pos.y -= tw(0);
   }
-  else if (value == KEY_DOWN) {
+  else if (value == 98 /*KP_DOWN*/) {
     state.camera.pos.y += tw(0);
   }
   else if (value == 107 /*KP_PLUS*/) {
@@ -209,12 +254,15 @@ void render(float deltaTime) {
   EcsWorld &world = state.ecsWorld;
   world.deltaTime = deltaTime * tw(2);
 
-  Phase phase = (Phase)(int)tw(1); // state.phase;
+  Phase phase = state.phase;
 
   if (phase == Simulate) {
     SimulateVehicle(world);
     SimulateFroggy(world);
     CheckCollisions(world);
+    state.currentFrame += 1;
+    state.recordedFrameCount += 1;
+    _lstr("recored frames", state.recordedFrameCount);
   }
   else if (phase == Rewind) {
   }
@@ -243,8 +291,8 @@ void render(float deltaTime) {
     const float roadHeight = level.render.roadHeight;
 
     const float roadWidth = w * 4;
-    const float roadLeft = -roadWidth/2 + w2;
-    const float roadRight = roadWidth/2 + w2;
+    const float roadLeft = -roadWidth / 2 + w2;
+    const float roadRight = roadWidth / 2 + w2;
 
     // grass - top
     texQuad(TEXTURE_GRASS,
@@ -321,12 +369,8 @@ void render(float deltaTime) {
       setColor(1, 1, 1, 0);
       rect(t.pos.x + lane.horzDir * c.width / 2, t.pos.y - c.height / 2, z, frontWidth, c.height);
 
-      if (v.paramsStatic->type == NormalCar) {
-        // TODO pick a 3d model
-      }
-
       if (state.phase == Playing) {
-        // TODO special effects
+        // TODO special effects of rewinding
       }
     END_FOR_EACH
   }

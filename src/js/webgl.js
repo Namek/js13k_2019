@@ -76,6 +76,9 @@ document.addEventListener("DOMContentLoaded", (event) => {
     return ret;
   }
 
+  const debugValues = {
+    // key is name, value is DOM element
+  }
   const logStr = (strPtr, num) => {
     //removeIf(production)
     let str = "";
@@ -85,7 +88,15 @@ document.addEventListener("DOMContentLoaded", (event) => {
     while (buf[++i] != 0)
       str += String.fromCharCode(buf[i])
 
-    log("logstr:", str, num);
+    let el = debugValues[str]
+    if (!el) {
+      el = document.createElement("p")
+      debugValues[str] = el
+      // `dv` is div instantiated in .html
+      dv.appendChild(el)
+    }
+    el.innerText = "- " + str + ': ' + num
+    // log("logstr:", str, num);
     //endRemoveIf(production)
   }
 

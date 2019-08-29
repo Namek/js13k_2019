@@ -45,6 +45,7 @@ enum VehicleType
 {
   NormalCar,
   FastCar,
+  SuperFastCar,
   TIR
 };
 
@@ -112,29 +113,36 @@ DEF_COMPONENT(Vehicle)
   VehicleConfiguredParams paramsConfiguredByPlayer;
 END_COMPONENT
 
-enum FrogState
+enum FrogPhase
 {
   WaitForJump,
   InitJump,
   DuringJump,
   Done
 };
-DEF_COMPONENT(Froggy)
-  FrogState state;
 
-  // state == WaitForJump: delay between jumps
-  float froggyThinkingTime;
+struct FroggyState {
+  FrogPhase phase;
 
   // 0..1 describes both state / amount of waiting time and animation
-  float stateProgress;
+  float phaseProgress;
 
   VertDir yDirection;
 
   float jumpingFrom[VEC_SIZE_3];
   float jumpingTo[VEC_SIZE_3];
   int nextLaneIndex;
+};
 
-  // TODO save simulated frames
+struct FroggyTimeFrame {
+  Transform transform;
+  FroggyState state;
+};
+
+DEF_COMPONENT(Froggy)
+  FroggyState state;
+
+  Array /* of FroggyTimeFrame */ simulatedFrames;
 END_COMPONENT
 
 #define COMPONENT_TYPE_COUNT __COUNTER__
@@ -195,8 +203,10 @@ struct GameState {
 
   Phase phase;
 
-  // applies if phase==Rewind
-  float rewindProgress;
+  // applies for animation when phase==Rewind
+  uint currentFrame;
+  uint recordedFrameCount;
+  int selectedVehicleEntityId;
 
   // collection of pointers to be free()d up after level finishes
   Array levelGarbage;

@@ -62,10 +62,11 @@ void initLevel(int levelIndex) {
     levelParams.laneDefinitions[3].horzDir = Left;
 
     // static params
-    GC_LEVEL(vehiclesStatic = Allocate(VehicleStaticParams, 2));
+    GC_LEVEL(vehiclesStatic = Allocate(VehicleStaticParams, 3));
 
     ref normalCar = setupVehicleStaticParams(vehiclesStatic[0], NormalCar, 0.4, 0.4, true, 110);
     ref fastCar = setupVehicleStaticParams(vehiclesStatic[1], FastCar, 0.7, 0.7, true, normalCar.maxSpeed * 2);
+    ref superFastCar = setupVehicleStaticParams(vehiclesStatic[2], SuperFastCar, 0.7, 0.9, true, fastCar.maxSpeed * 2);
 
     // all vehicles on level
     levelParams.vehicles.init(sizeof(VehicleConfig));
@@ -73,7 +74,8 @@ void initLevel(int levelIndex) {
     const float vehicleParams[] = {
       // vehicleStaticPtr, laneIndex, maxSpeedPercent, xPosPercent
       0, 0, 0.8, 0.4,
-      0, 0, 0.8, 0.2,
+      1, 0, 1.0, -0.8, // first challenge
+      2, 0, 1.0, -2.6, // second challenge
       1, 1, 1, -0.2,
       1, 1, 0.8, 0.4,
       0, 2, 0.8, 0.9,
@@ -95,16 +97,15 @@ void initLevel(int levelIndex) {
   {
     ref frog = world.newEntity();
     ref froggy = world.createComponent<Froggy>(frog.id);
-    froggy.froggyThinkingTime = state.currentLevel.params.froggyThinkingTime;
-    froggy.state = WaitForJump;
-    froggy.stateProgress = 0;
-    froggy.yDirection = state.currentLevel.params.froggyDirection;
-    bool isGoingUp = froggy.yDirection == Up;
-    froggy.nextLaneIndex = isGoingUp ? -1 : state.currentLevel.params.laneCount;
+    froggy.state.phase = WaitForJump;
+    froggy.state.phaseProgress = 0;
+    froggy.state.yDirection = state.currentLevel.params.froggyDirection;
+    bool isGoingUp = froggy.state.yDirection == Up;
+    froggy.state.nextLaneIndex = isGoingUp ? -1 : state.currentLevel.params.laneCount;
 
     ref transform = world.createComponent<Transform>(frog.id);
     transform.pos.x = calcCenterX(state.currentLevel.params.froggyXPosition);
-    transform.pos.y = calcCenterYForLane(froggy.nextLaneIndex + (isGoingUp ? -1 : +1)); //position on grass
+    transform.pos.y = calcCenterYForLane(froggy.state.nextLaneIndex + (isGoingUp ? -1 : +1)); //position on grass
     transform.pos.z = 0;
 
     ref collider = world.createComponent<Collider>(frog.id);
