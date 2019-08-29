@@ -86,6 +86,8 @@ void beginFrame() {
   e.currentModelMatrixIndex = MAX_MODEL_MATRIX_COUNT;
   mat4_identity(getViewMatrix());
   mat4_identity(getModelMatrix());
+
+  clearFrame();
 }
 
 void endFrame() {

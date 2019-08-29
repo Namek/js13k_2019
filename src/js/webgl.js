@@ -33,7 +33,8 @@ document.addEventListener("DOMContentLoaded", (event) => {
   , EVENT_KEYUP = 2
   
   let
-    performDrawCall = () => {}
+    clearFrame = () => {}
+  , performDrawCall = () => {}
   , receiveTexture = () => {}
 
   let
@@ -119,6 +120,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
       __lstr: logStr,
       __lfstr: logStr,
       _randomf: Math.random,
+      _clearFrame: () => clearFrame(),
       _triggerDrawCall: () => performDrawCall(),
       _sendTexture: (p,w,h) => receiveTexture(p,w,h),
       _sbrk
@@ -136,6 +138,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
     const
       gl = canvas.getContext('webgl2')
     , gl_bindBuffer = function() { gl.bindBuffer.apply(gl, arguments) }
+    , gl_bufferData = function() { gl.bufferData.apply(gl, arguments) }
     , gl_createBuffer = () => gl.createBuffer()
 
     /*========== Preparing WebAssembly memory ==============*/
@@ -357,6 +360,14 @@ document.addEventListener("DOMContentLoaded", (event) => {
     /*================ Drawing the game =================*/
   
     let previousRenderTimestamp = null
+
+    clearFrame = () => {
+      gl.clearColor(0.2, 0.2, 0.8, 1)
+      gl.clearDepth(1.0)
+      gl.enable(gl_DEPTH_TEST)
+      gl.depthFunc(gl_LEQUAL)
+      gl.clear(gl_BUFFER_COLOR_BIT | gl_DEPTH_BUFFER_BIT)
+    }
   
     performDrawCall = () => {
       const vertexCount = wasm_funcReturnValues[0]
@@ -364,21 +375,22 @@ document.addEventListener("DOMContentLoaded", (event) => {
       const currentTextureId = wasm_funcReturnValues[2]
       const useTexture = currentTextureId >= 0
   
+
       gl_bindBuffer(gl_ARRAY_BUFFER, buffer_vertex)
-      gl.bufferData(gl_ARRAY_BUFFER, wasm_vertexBuffer.subarray(0, vertexCount*VALUES_PER_VERTEX), gl_STATIC_DRAW)
+      gl_bufferData(gl_ARRAY_BUFFER, wasm_vertexBuffer.subarray(0, vertexCount*VALUES_PER_VERTEX), gl_STATIC_DRAW)
       gl_bindBuffer(gl_ARRAY_BUFFER, buffer_normal)
-      gl.bufferData(gl_ARRAY_BUFFER, wasm_normalBuffer.subarray(0, vertexCount*VALUES_PER_VERTEX), gl_STATIC_DRAW)
+      gl_bufferData(gl_ARRAY_BUFFER, wasm_normalBuffer.subarray(0, vertexCount*VALUES_PER_VERTEX), gl_STATIC_DRAW)
       gl_bindBuffer(gl_ELEMENT_ARRAY_BUFFER, buffer_index)
-      gl.bufferData(gl_ELEMENT_ARRAY_BUFFER, wasm_indexBuffer.subarray(0, indexCount), gl_STATIC_DRAW)
+      gl_bufferData(gl_ELEMENT_ARRAY_BUFFER, wasm_indexBuffer.subarray(0, indexCount), gl_STATIC_DRAW)
 
       // There is a choice between vertex-colored pixel and textured pixel.
       // We always need to assign a buffer of non-vertex attributes as big as many vertices are sent to the WebGL.
       // Thus, if we don't use a texture, let's just send the meaningless buffer anyway,
       // so we don't have to have a separate shaders with and without texture support.
       gl_bindBuffer(gl_ARRAY_BUFFER, buffer_color)
-      gl.bufferData(gl_ARRAY_BUFFER, wasm_colorBuffer.subarray(0, vertexCount*VALUES_PER_COLOR), gl_STATIC_DRAW)
+      gl_bufferData(gl_ARRAY_BUFFER, wasm_colorBuffer.subarray(0, vertexCount*VALUES_PER_COLOR), gl_STATIC_DRAW)
       gl_bindBuffer(gl_ARRAY_BUFFER, buffer_texCoords)
-      gl.bufferData(gl_ARRAY_BUFFER, wasm_texCoordsBuffer.subarray(0, vertexCount*VALUES_PER_TEXCOORD), gl_STATIC_DRAW)
+      gl_bufferData(gl_ARRAY_BUFFER, wasm_texCoordsBuffer.subarray(0, vertexCount*VALUES_PER_TEXCOORD), gl_STATIC_DRAW)
       if (useTexture) {
         gl.bindTexture(gl_TEXTURE_2D, textures[currentTextureId])
       }
@@ -397,12 +409,6 @@ document.addEventListener("DOMContentLoaded", (event) => {
     const render = (timestamp) => {
       const deltaTime = (timestamp - previousRenderTimestamp) / 1000
       previousRenderTimestamp = timestamp
-
-      gl.clearColor(0.2, 0.2, 0.8, 1)
-      gl.clearDepth(1.0)
-      gl.enable(gl_DEPTH_TEST)
-      gl.depthFunc(gl_LEQUAL)
-      gl.clear(gl_BUFFER_COLOR_BIT | gl_DEPTH_BUFFER_BIT)
 
       // should call performDrawCall() at least once
       exports._render(deltaTime)

@@ -15,6 +15,7 @@ WASM_EXPORT bool onEvent(int eventType, int value);
 extern float getCanvasWidth();
 extern float getCanvasHeight();
 extern float Math_tan(float a);
+extern void clearFrame();
 extern void triggerDrawCall();
 extern void sendTexture(int ptr, int width, int height);
 }
