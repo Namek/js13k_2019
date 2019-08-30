@@ -11,12 +11,6 @@ const float REWIND_TIME_FACTOR = 2.5f;
 const float REWIND_ANIM_SHADER_EFFECT_TURN_ON_DURATION = 0.5f;
 const float REWIND_ANIM_SHADER_EFFECT_TURN_OFF_DURATION = 0.75f;
 
-DEF_ENTITY_SYSTEM(TweenManager, A(Tween))
-  ref t = getCmpE(Tween);
-
-  // TODO
-END_ENTITY_SYSTEM
-
 DEF_ENTITY_SYSTEM(SimulateVehicle, A(Vehicle))
   ref v = getCmpE(Vehicle);
   ref vt = getCmpE(Transform);
@@ -120,6 +114,9 @@ DEF_ENTITY_SYSTEM(CheckCollisions, A(Collider) | A(Transform))
         x1 + c1.width > x2 &&
         y1 < y2 + c2.height &&
         y1 + c1.height > y2) {
+
+      state.lastCollisionEntity1Id = entity1Id;
+      state.lastCollisionEntity2Id = entity.id;
       goToPhase(ShowCollisionBeforeRewind);
     }
   END_FOR_EACH
@@ -172,18 +169,25 @@ void goToPhase(Phase newPhase) {
   }
   else if (newPhase == RewindAnimation) {
     state.rewindCurrentFrameDtLeft = 0;
+    tweenFloat(state.tweens, REWIND_ANIM_SHADER_EFFECT_TURN_ON_DURATION, &state.camera.pos.z, 0.0f, 150.0f, Linear);
   }
   else if (newPhase == ShowCollisionBeforeRewind) {
-
   }
   else if (newPhase == Playing) {
     state.shaderRewind = 0;
+    state.selectedVehicleEntityId = -1;
+
+    if (state.ecsWorld.hasComponent<Vehicle>(state.lastCollisionEntity1Id))
+      state.selectedVehicleEntityId = state.lastCollisionEntity1Id;
+    else if (state.ecsWorld.hasComponent<Vehicle>(state.lastCollisionEntity2Id))
+      state.selectedVehicleEntityId = state.lastCollisionEntity2Id;
   }
 }
 
 void initGame() {
   registerShaderUniform("rewind", SHADER_UNIFORM_1f, &state.shaderRewind);
 
+  initTweens(state.tweens);
   state.levelGarbage.init(sizeof(void *));
   int sizes[] = COMPONENT_TYPE_SIZES;
   initEcsWorld(state.ecsWorld, sizes, COMPONENT_TYPE_COUNT);
@@ -201,8 +205,14 @@ bool onEvent(int eventType, int value) {
   }
 
   if (value == KEY_RIGHT) {
+    if (state.phase == Playing) {
+      loadFrame(state.currentFrame + 10);
+    }
   }
   else if (value == KEY_LEFT) {
+    if (state.phase == Playing) {
+      loadFrame(state.currentFrame - 10);
+    }
   }
   else if (value == KEY_UP) {
   }
@@ -288,7 +298,7 @@ RecordedFrame *loadFrame(int frameIndex) {
 
     auto frame = (VehicleTimeFrame *)v.paramsDynamicSimulatedFrames.getPointer(state.currentFrame);
     vt.pos = frame->transform.pos;
-    memcpy(frame->transform.orientation, vt.orientation, MAT_SIZE_4 * sizeof(float));
+    memcpy(vt.orientation, frame->transform.orientation, MAT_SIZE_4 * sizeof(float));
     v.paramsDynamicCurrent = frame->params;
   END_FOR_EACH
 
@@ -299,7 +309,7 @@ RecordedFrame *loadFrame(int frameIndex) {
 
     auto frame = (FroggyTimeFrame *)frog.simulatedFrames.getPointer(state.currentFrame);
     ft.pos = frame->transform.pos;
-    memcpy(frame->transform.orientation, ft.orientation, MAT_SIZE_4 * sizeof(float));
+    memcpy(ft.orientation, frame->transform.orientation, MAT_SIZE_4 * sizeof(float));
     frog.state = frame->state;
     _lfstr("load/frog.pos.y", frame->transform.pos.y);
   END_FOR_EACH
@@ -346,8 +356,8 @@ void render(float deltaTime) {
 
   Phase phase = state.phase;
 
+  updateTweens(state.tweens, world.deltaTime);
   if (phase == Simulate) {
-    TweenManager(world);
     SimulateVehicle(world);
     SimulateFroggy(world);
     CheckCollisions(world);
@@ -493,13 +503,14 @@ void render(float deltaTime) {
         rect(x, y, z, c.width, c.height);
       }
 
+      if (state.phase == Playing && entity.id == state.selectedVehicleEntityId) {
+        setColor(0.4, 1, 1, 1);
+        rect(x, y, z, c.width, c.height);
+      }
+
       // debug: front of car
       setColor(1, 1, 1, 0);
       rect(t.pos.x + lane.horzDir * c.width / 2, t.pos.y - c.height / 2, z, frontWidth, c.height);
-
-      if (state.phase == Playing) {
-        // TODO special effects of rewinding
-      }
     END_FOR_EACH
   }
 

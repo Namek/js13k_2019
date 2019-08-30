@@ -60,10 +60,10 @@ struct EcsWorld {
   }
 
   template <class T>
-  T &hasComponent(int entityId) {
+  bool hasComponent(int entityId) {
     constexpr int componentIndex = T::I;
     Entity &e = (Entity &)*entities.getPtr(entityId);
-    bool hasComponent = (e.componentBitSet & (1 << componentIndex)) == 1;
+    bool hasComponent = (e.componentBitSet & (1 << componentIndex)) != 0;
     return hasComponent;
   }
 
@@ -96,7 +96,7 @@ struct EcsWorld {
     constexpr int componentIndex = T::I;
     Entity &e = (Entity &)*entities.getPtr(entityId);
 
-    if ((e.componentBitSet & (1 << componentIndex)) == 1) {
+    if ((e.componentBitSet & (1 << componentIndex)) != 0) {
       e.componentBitSet &= ~(1 << componentIndex);
       components[componentIndex].remove(entityId);
     }

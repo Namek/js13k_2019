@@ -106,13 +106,13 @@ void flushBuffers() {
   ret[2] = e.currentTextureId;
 
   memcpy(
-      FLOAT_PTR(e.viewMatrix, e.currentViewMatrixIndex * MATRIX_SIZE),
       e.viewMatrix,
+      FLOAT_PTR(e.viewMatrix, e.currentViewMatrixIndex * MATRIX_SIZE),
       MATRIX_SIZE);
 
   memcpy(
-      FLOAT_PTR(e.modelMatrix, e.currentModelMatrixIndex * MATRIX_SIZE),
       e.modelMatrix,
+      FLOAT_PTR(e.modelMatrix, e.currentModelMatrixIndex * MATRIX_SIZE),
       MATRIX_SIZE);
 
   mat4_invert(e.normalMatrix, mat4_multiply(mat4Tmp, e.modelMatrix, e.viewMatrix));
@@ -207,28 +207,28 @@ void setProjectionMatrix(float *matrix) {
   flushBuffers();
 
   float *dst = getProjectionMatrix();
-  memcpy(matrix, dst, MATRIX_SIZE);
+  memcpy(dst, matrix, MATRIX_SIZE);
 }
 
 void setViewMatrix(float *matrix) {
   flushBuffers();
 
   float *dst = getViewMatrix();
-  memcpy(matrix, dst, MATRIX_SIZE);
+  memcpy(dst, matrix, MATRIX_SIZE);
 }
 
 void setModelMatrix(float *matrix) {
   flushBuffers();
 
   float *dst = getModelMatrix();
-  memcpy(matrix, dst, MATRIX_SIZE);
+  memcpy(dst, matrix, MATRIX_SIZE);
 }
 
 float *pushViewMatrix() {
   float *src = getViewMatrix();
   e.currentViewMatrixIndex -= 1;
   float *dst = getViewMatrix();
-  memcpy(src, dst, MATRIX_SIZE);
+  memcpy(dst, src, MATRIX_SIZE);
   return dst;
 }
 
@@ -242,7 +242,7 @@ float *pushModelMatrix() {
   float *src = getModelMatrix();
   e.currentModelMatrixIndex -= 1;
   float *dst = getModelMatrix();
-  memcpy(src, dst, MATRIX_SIZE);
+  memcpy(dst, src, MATRIX_SIZE);
   return dst;
 }
 

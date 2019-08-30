@@ -92,7 +92,7 @@ void free(void *block) {
   header->s.is_free = 1;
 }
 
-void memcpy(void* src, void* dst, int len) {
+void memcpy(void* dst, const void* src, int len) {
   char* s = (char*)src;
   char* d = (char*)dst;
 

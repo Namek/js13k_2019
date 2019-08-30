@@ -6,7 +6,7 @@
 extern "C" {
 void *malloc(size_t size);
 void free(void *ptr);
-void memcpy(void *src, void *dst, int len);
+void memcpy(void* dst, const void* src, int len);
 
 extern size_t sbrk(size_t);
 }

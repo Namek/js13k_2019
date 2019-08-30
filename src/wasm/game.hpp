@@ -5,6 +5,7 @@
 #include "ecs.hpp"
 #include "math/common.h"
 #include "engine.hpp"
+#include "tween.hpp"
 
 extern "C" {
 WASM_EXPORT void initGame();
@@ -29,13 +30,6 @@ enum VertDir
   Up = -1,
   Down = 1
 };
-
-DEF_COMPONENT(Tween)
-  float *target;
-  uint size;
-  float deltaValue;
-  float leftDuration;
-END_COMPONENT
 
 DEF_COMPONENT(Transform)
   // centerX, centerY of object, baseZ; size in pixels, used for rendering
@@ -156,8 +150,7 @@ END_COMPONENT
 #define COMPONENT_TYPE_COUNT __COUNTER__
 
 #define COMPONENT_TYPE_SIZES \
-  { SIZE(Tween),             \
-    SIZE(Transform),         \
+  { SIZE(Transform),         \
     SIZE(Collider),          \
     SIZE(Vehicle),           \
     SIZE(Froggy) }
@@ -215,6 +208,7 @@ struct RecordedFrame {
 
 struct GameState {
   EcsWorld ecsWorld;
+  Tweens tweens;
   Level currentLevel;
   Camera camera;
 
@@ -227,6 +221,7 @@ struct GameState {
   float rewindCurrentFrameDtLeft;
   float shaderRewind;
 
+  int lastCollisionEntity1Id, lastCollisionEntity2Id;
   int selectedVehicleEntityId;
 
   // collection of pointers to be free()d up after level finishes
@@ -245,6 +240,9 @@ const uint SHADER_UNIFORM_REWIND = SHADER_UNIFORM_OFFSET;
 void initGame();
 void initLevel(int levelIndex);
 void goToPhase(Phase newPhase);
+RecordedFrame *getFrame(int frameIndex);
+RecordedFrame *loadFrame(int frameIndex);
+void recordFrame();
 
 // game_helpers
 float calcCenterX(float onLanePercent);
