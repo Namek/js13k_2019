@@ -162,7 +162,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
     const heap = memory.buffer
 
     const f32buffer = (offset, size) => new Float32Array(heap, offset, size)
-    const i32bufer = (offset, size) => new Int32Array(heap, offset, size)
+    const i32buffer = (offset, size) => new Int32Array(heap, offset, size)
 
     const passEvent = (eventId) => (evt) => {
       let handled = exports._onEvent(eventId, evt.keyCode)
@@ -316,7 +316,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
 
     const OFFSET_FUNC_RETURN = exports._preinit(HEAP_START)
     const SIZE_FUNC_RETURN = 100
-    const wasm_funcReturnValues = new Int32Array(heap, OFFSET_FUNC_RETURN, SIZE_FUNC_RETURN)
+    const wasm_funcReturnValues = i32buffer(OFFSET_FUNC_RETURN, SIZE_FUNC_RETURN)
     const textures = []
 
     receiveTexture = (texOffset, texW, texH) => {
@@ -405,7 +405,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
 
     const wasm_colorBuffer = f32buffer(OFFSET_RENDER_BUFFER_COLOR, SIZE_RENDER_BUFFER_COLOR/4)
     const wasm_vertexBuffer = f32buffer(OFFSET_RENDER_BUFFER_VERTEX, SIZE_RENDER_BUFFER_VERTEX/4)
-    const wasm_indexBuffer = i32bufer(OFFSET_RENDER_BUFFER_INDEX, SIZE_RENDER_BUFFER_INDEX/4)
+    const wasm_indexBuffer = i32buffer(OFFSET_RENDER_BUFFER_INDEX, SIZE_RENDER_BUFFER_INDEX/4)
     const wasm_texCoordsBuffer = f32buffer(OFFSET_RENDER_BUFFER_TEXCOORDS, SIZE_RENDER_BUFFER_TEXCOORDS/4)
     const wasm_normalBuffer = f32buffer(OFFSET_RENDER_BUFFER_NORMAL, SIZE_RENDER_BUFFER_NORMAL/4)
 
@@ -483,24 +483,28 @@ document.addEventListener("DOMContentLoaded", (event) => {
     gl.attachShader(program, vertShader)
     gl.attachShader(program, fragShader)
     gl.linkProgram(program)
-  
+
+    //removeIf(production)
     if (!gl.getProgramParameter(program, gl_LINK_STATUS)) {
       throw new Error(gl.getProgramInfoLog(program))
     }
-  
+    //endRemoveIf(production)
+
     return program
   }
-  
+
   const compileShader = (gl, type, code) => {
     const shader = gl.createShader(type)
     gl.shaderSource(shader, code)
     gl.compileShader(shader)
-  
+
     const compiled = gl.getShaderParameter(shader, gl_COMPILE_STATUS)
-  
+
+    //removeIf(production)
     if (!compiled) {
       throw new Error(gl.getShaderInfoLog(shader))
     }
+    //endRemoveIf(production)
   
     return shader
   }

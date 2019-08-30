@@ -31,7 +31,7 @@ var regular = chalk.white;
 
 
 var isProduction = false
-const approximatedSizeReductionOnProductionRemovals = 1469
+const approximatedSizeReductionOnProductionRemovals = 1570
 
 
 gulp.task('watch-only', (done) => {
