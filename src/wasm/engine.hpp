@@ -23,6 +23,9 @@ extern void sendTexture(int ptr, int width, int height);
 extern void registerShaderUniform(const char *name, uint type, void *ptr);
 }
 
+#define MAX_VIEW_MATRIX_COUNT 20
+#define MAX_MODEL_MATRIX_COUNT 20
+
 // clang-format off
 struct EngineState {
   // shared memory
@@ -38,8 +41,8 @@ struct EngineState {
   , *renderTexCoordsBuffer
   , *renderNormalBuffer
   ,  projectionMatrix[MAT_SIZE_4]
-  , *viewMatrix
-  , *modelMatrix
+  ,  viewMatrix[MAT_SIZE_4 * (MAX_VIEW_MATRIX_COUNT + 1)]
+  ,  modelMatrix[MAT_SIZE_4 * (MAX_MODEL_MATRIX_COUNT + 1)]
   ,  normalMatrix[MAT_SIZE_4]
 
   // internal memory

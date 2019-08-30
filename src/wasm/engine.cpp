@@ -22,10 +22,6 @@ const int SIZE_RENDER_NORMAL_BUFFER = SIZE_RENDER_VERTEX_BUFFER;
 const int SIZE_RENDER_INDEX_BUFFER = SIZE_RENDER_VERTEX_BUFFER; //usually it's less
 const int SIZE_RENDER_TEXCOORDS_BUFFER = SIZE_RENDER_VERTEX_BUFFER / 2;
 
-const int MAX_VIEW_MATRIX_COUNT = 20;
-const int MAX_MODEL_MATRIX_COUNT = 20;
-const int SIZE_VIEW_MATRICES = (MAX_VIEW_MATRIX_COUNT + 1) * MATRIX_SIZE;   //stack of 20 view matrixes besides the 21th final matrix (on 0th index)
-const int SIZE_MODEL_MATRICES = (MAX_MODEL_MATRIX_COUNT + 1) * MATRIX_SIZE; //stack of 20 view matrixes besides the 21th final matrix (on 0th index)
 
 // internal memory
 const int SIZE_CURRENT_COLOR = 16 * sizeof(float);
@@ -48,11 +44,9 @@ void initEngine() {
   e.renderIndexBuffer = INT_PTR(e.renderVertexBuffer, SIZE_RENDER_VERTEX_BUFFER);
   e.renderTexCoordsBuffer = FLOAT_PTR(e.renderIndexBuffer, SIZE_RENDER_INDEX_BUFFER);
   e.renderNormalBuffer = FLOAT_PTR(e.renderTexCoordsBuffer, SIZE_RENDER_TEXCOORDS_BUFFER);
-  e.viewMatrix = FLOAT_PTR(e.renderNormalBuffer, SIZE_RENDER_NORMAL_BUFFER);
-  e.modelMatrix = FLOAT_PTR(e.viewMatrix, SIZE_VIEW_MATRICES);
 
   // internal memory
-  e.currentColor = FLOAT_PTR(e.modelMatrix, SIZE_VIEW_MATRICES);
+  e.currentColor = FLOAT_PTR(e.renderNormalBuffer, SIZE_RENDER_NORMAL_BUFFER);
   const int OFFSET_DYNAMIC_MEMORY = align((int)e.currentColor + SIZE_CURRENT_COLOR, 16);
 
   ret[0] = VALUES_PER_COLOR;
@@ -67,11 +61,11 @@ void initEngine() {
   ret[9] = (int)e.renderIndexBuffer;
   ret[10] = (int)e.renderTexCoordsBuffer;
   ret[11] = (int)e.renderNormalBuffer;
-  ret[13] = (int)e.viewMatrix;
-  ret[14] = (int)e.modelMatrix;
-  ret[16] = OFFSET_DYNAMIC_MEMORY;
+  ret[12] = OFFSET_DYNAMIC_MEMORY;
 
   registerShaderUniform("projMat", SHADER_UNIFORM_Matrix4fv, e.projectionMatrix);
+  registerShaderUniform("viewMat", SHADER_UNIFORM_Matrix4fv, e.viewMatrix);
+  registerShaderUniform("mdlMat", SHADER_UNIFORM_Matrix4fv, e.modelMatrix);
   registerShaderUniform("norMat", SHADER_UNIFORM_Matrix4fv, e.normalMatrix);
 }
 
