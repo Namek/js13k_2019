@@ -37,10 +37,10 @@ struct EngineState {
   , *renderVertexBuffer
   , *renderTexCoordsBuffer
   , *renderNormalBuffer
-  , *projectionMatrix
+  ,  projectionMatrix[MAT_SIZE_4]
   , *viewMatrix
   , *modelMatrix
-  , *normalMatrix
+  ,  normalMatrix[MAT_SIZE_4]
 
   // internal memory
   , *currentColor
@@ -64,8 +64,8 @@ void beginFrame();
 void endFrame();
 void flushBuffers();
 
-const uint SHADER_UNIFORM_1f = 0;
-const uint SHADER_UNIFORM_1i = 1;
+const uint SHADER_UNIFORM_1i = 0;
+const uint SHADER_UNIFORM_1f = 1;
 const uint SHADER_UNIFORM_Matrix4fv = 2;
 const uint SHADER_UNIFORM_OFFSET = 0;
 

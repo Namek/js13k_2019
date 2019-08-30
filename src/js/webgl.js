@@ -29,9 +29,10 @@ document.addEventListener("DOMContentLoaded", (event) => {
   , gl_TEXTURE_2D = 3553
   , gl_RGB = 6407
   , gl_RGBA = 6408
-  , SHADER_UNIFORM_1f = 0
-  , SHADER_UNIFORM_1i = 1
+  , SHADER_UNIFORM_1i = 0
+  , SHADER_UNIFORM_1f = 1
   , SHADER_UNIFORM_Matrix4fv = 2
+  , NUM_MATRIX4 = 16
   , EVENT_KEYDOWN = 1
   , EVENT_KEYUP = 2
 
@@ -376,8 +377,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
 
       const isMatrix = type == SHADER_UNIFORM_Matrix4fv
       const loc = gl.getUniformLocation(shaderProgram, name)
-      const wasm_data = f32buffer(valuePtr, size)
-
+      const wasm_data = bufferFn(valuePtr, size)
       const fetchValue = isMatrix
         ? () => { gl['uniform' + suffix](loc, false, wasm_data) }
         : () => { gl['uniform' + suffix](loc, wasm_data) }
@@ -394,17 +394,13 @@ document.addEventListener("DOMContentLoaded", (event) => {
     const SIZE_RENDER_BUFFER_NORMAL = wasm_funcReturnValues[4]
     const SIZE_RENDER_BUFFER_INDEX = wasm_funcReturnValues[5]
     const SIZE_RENDER_BUFFER_TEXCOORDS = wasm_funcReturnValues[6]
-    const NUM_MATRIX4 = 16
-
     const OFFSET_RENDER_BUFFER_COLOR = wasm_funcReturnValues[7]
     const OFFSET_RENDER_BUFFER_VERTEX = wasm_funcReturnValues[8]
     const OFFSET_RENDER_BUFFER_INDEX = wasm_funcReturnValues[9]
     const OFFSET_RENDER_BUFFER_TEXCOORDS = wasm_funcReturnValues[10]
     const OFFSET_RENDER_BUFFER_NORMAL = wasm_funcReturnValues[11]
-    const OFFSET_PROJECTION_MATRIX = wasm_funcReturnValues[12]
     const OFFSET_VIEW_MATRIX = wasm_funcReturnValues[13]
     const OFFSET_MODEL_MATRIX = wasm_funcReturnValues[14]
-    const OFFSET_NORMAL_MATRIX = wasm_funcReturnValues[15]
 
     const OFFSET_DYNAMIC_MEMORY = wasm_funcReturnValues[16]
     dynamicMemoryOffset = dynamicMemoryBreak = OFFSET_DYNAMIC_MEMORY
@@ -414,15 +410,11 @@ document.addEventListener("DOMContentLoaded", (event) => {
     const wasm_indexBuffer = i32bufer(OFFSET_RENDER_BUFFER_INDEX, SIZE_RENDER_BUFFER_INDEX/4)
     const wasm_texCoordsBuffer = f32buffer(OFFSET_RENDER_BUFFER_TEXCOORDS, SIZE_RENDER_BUFFER_TEXCOORDS/4)
     const wasm_normalBuffer = f32buffer(OFFSET_RENDER_BUFFER_NORMAL, SIZE_RENDER_BUFFER_NORMAL/4)
-    const wasm_projMatrix = f32buffer(OFFSET_PROJECTION_MATRIX, NUM_MATRIX4)
     const wasm_viewMatrix = f32buffer(OFFSET_VIEW_MATRIX, NUM_MATRIX4)
     const wasm_modelMatrix = f32buffer(OFFSET_MODEL_MATRIX, NUM_MATRIX4)
-    const wasm_normalMatrix = f32buffer(OFFSET_NORMAL_MATRIX, NUM_MATRIX4)
 
-    const uProjMatrix = gl.getUniformLocation(shaderProgram, 'projMat')
     const uViewMatrix = gl.getUniformLocation(shaderProgram, 'viewMat')
     const uModelMatrix = gl.getUniformLocation(shaderProgram, 'mdlMat')
-    const uNormalMatrix = gl.getUniformLocation(shaderProgram, 'norMat');
     const uUseTexture = gl.getUniformLocation(shaderProgram, 'useTex')
   
   
@@ -465,11 +457,9 @@ document.addEventListener("DOMContentLoaded", (event) => {
       }
 
       gl_bindBuffer(gl_ARRAY_BUFFER, null)
-  
-      gl.uniformMatrix4fv(uProjMatrix, false, wasm_projMatrix)
+
       gl.uniformMatrix4fv(uViewMatrix, false, wasm_viewMatrix)
       gl.uniformMatrix4fv(uModelMatrix, false, wasm_modelMatrix)
-      gl.uniformMatrix4fv(uNormalMatrix, false, wasm_normalMatrix)
       gl.uniform1i(uUseTexture, useTexture)
 
       for (let uniform of shaderUniforms) {
