@@ -29,13 +29,18 @@ document.addEventListener("DOMContentLoaded", (event) => {
   , gl_TEXTURE_2D = 3553
   , gl_RGB = 6407
   , gl_RGBA = 6408
+  , SHADER_UNIFORM_1f = 0
+  , SHADER_UNIFORM_1i = 1
+  , SHADER_UNIFORM_Matrix4fv = 2
   , EVENT_KEYDOWN = 1
   , EVENT_KEYUP = 2
-  
+
   let
-    clearFrame = () => {}
-  , performDrawCall = () => {}
-  , receiveTexture = () => {}
+    dumbFunction = () => {}
+  , clearFrame = dumbFunction
+  , performDrawCall = dumbFunction
+  , receiveTexture = dumbFunction
+  , registerShaderUniform = dumbFunction
 
   let
     allocatedPages = 256     //65k-sized WebAssembly pages
@@ -77,7 +82,6 @@ document.addEventListener("DOMContentLoaded", (event) => {
     return ret;
   }
 
-  //removeIf(production)
   const readTextFromMemory = (strPtr) => {
     let str = "";
     let buf = new Uint8Array(memory.buffer, strPtr, 100)
@@ -88,6 +92,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
 
     return str
   }
+  //removeIf(production)
   const abort = (strPtr) => {
     throw new Error(readTextFromMemory(strPtr))
   }
@@ -132,6 +137,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
       _clearFrame: () => clearFrame(),
       _triggerDrawCall: () => performDrawCall(),
       _sendTexture: (p,w,h) => receiveTexture(p,w,h),
+      _registerShaderUniform: (name, type, valuePtr) => registerShaderUniform(name, type, valuePtr),
       _sbrk
     }
 
@@ -153,6 +159,9 @@ document.addEventListener("DOMContentLoaded", (event) => {
     /*========== Preparing WebAssembly memory ==============*/
     const exports = result.instance.exports
     const heap = memory.buffer
+
+    const f32buffer = (offset, size) => new Float32Array(heap, offset, size)
+    const i32bufer = (offset, size) => new Int32Array(heap, offset, size)
 
     const passEvent = (eventId) => (evt) => {
       let handled = exports._onEvent(eventId, evt.keyCode)
@@ -201,13 +210,22 @@ document.addEventListener("DOMContentLoaded", (event) => {
     '}'
 
     const fragCode =
-      'precision highp float;'+
+      'precision mediump float;'+
       'varying vec3 vNor;'+
       'varying vec4 vColor;'+
       'varying vec2 vTex;'+
       'varying mat4 vMat;'+
       'uniform sampler2D tex;'+
       'uniform bool useTex;'+
+      'uniform float rewind;'+
+      `vec4 Sepia(vec4 c) {
+          return vec4(
+                clamp(c.r * 0.393 + c.g * 0.769 + c.b * 0.189, 0.0, 1.0)
+              , clamp(c.r * 0.349 + c.g * 0.686 + c.b * 0.168, 0.0, 1.0)
+              , clamp(c.r * 0.272 + c.g * 0.534 + c.b * 0.131, 0.0, 1.0)
+              , c.a
+          );
+      }`+
       'void main(void) {'+
         'vec4 color;'+
         'if (useTex) {'+
@@ -221,7 +239,11 @@ document.addEventListener("DOMContentLoaded", (event) => {
         'float lightStrength = max(0.35, dot(directionToLight, vNor));'+
         'gl_FragColor.rgb = color.rgb * lightStrength;'+
         'gl_FragColor.a = color.a;'+
+        'if (rewind > 0.0) {'+
+          'gl_FragColor = rewind * Sepia(gl_FragColor) + (1.0 - rewind) * gl_FragColor;'+
+        '}'+
       '}'
+
   
     const shaderProgram = linkShaders(gl, vertCode, fragCode)
     gl.useProgram(shaderProgram)
@@ -324,6 +346,45 @@ document.addEventListener("DOMContentLoaded", (event) => {
     }
     exports._generateTextures()
 
+    let shaderUniforms = [
+      // collection of functions to be called on draw call
+    ]
+    registerShaderUniform = (namePtr, type, valuePtr) => {
+      const name = readTextFromMemory(namePtr)
+
+      //removeIf(production)
+      if (shaderUniforms.filter(s => s.name == name).length > 0)
+        throw new Error("shader already registered")
+      //endRemoveIf(production)
+
+      let suffix, size, bufferFn
+      if (type == SHADER_UNIFORM_1i) {
+        suffix = "1i"
+        size = 1
+        bufferFn = i32buffer
+      }
+      else if (type == SHADER_UNIFORM_1f) {
+        suffix = "1f"
+        size = 1
+        bufferFn = f32buffer
+      }
+      else if (type == SHADER_UNIFORM_Matrix4fv) {
+        suffix = "Matrix4fv"
+        size = NUM_MATRIX4
+        bufferFn = f32buffer
+      }
+
+      const isMatrix = type == SHADER_UNIFORM_Matrix4fv
+      const loc = gl.getUniformLocation(shaderProgram, name)
+      const wasm_data = f32buffer(valuePtr, size)
+
+      const fetchValue = isMatrix
+        ? () => { gl['uniform' + suffix](loc, false, wasm_data) }
+        : () => { gl['uniform' + suffix](loc, wasm_data) }
+
+      shaderUniforms.push(fetchValue)
+    }
+
     exports._initEngine()
     const VALUES_PER_VERTEX = wasm_funcReturnValues[1]//3
     const VALUES_PER_COLOR = wasm_funcReturnValues[0]//4
@@ -348,10 +409,9 @@ document.addEventListener("DOMContentLoaded", (event) => {
     const OFFSET_DYNAMIC_MEMORY = wasm_funcReturnValues[16]
     dynamicMemoryOffset = dynamicMemoryBreak = OFFSET_DYNAMIC_MEMORY
 
-    const f32buffer = (offset, size) => new Float32Array(heap, offset, size)
     const wasm_colorBuffer = f32buffer(OFFSET_RENDER_BUFFER_COLOR, SIZE_RENDER_BUFFER_COLOR/4)
     const wasm_vertexBuffer = f32buffer(OFFSET_RENDER_BUFFER_VERTEX, SIZE_RENDER_BUFFER_VERTEX/4)
-    const wasm_indexBuffer = new Int32Array(heap, OFFSET_RENDER_BUFFER_INDEX, SIZE_RENDER_BUFFER_INDEX/4)
+    const wasm_indexBuffer = i32bufer(OFFSET_RENDER_BUFFER_INDEX, SIZE_RENDER_BUFFER_INDEX/4)
     const wasm_texCoordsBuffer = f32buffer(OFFSET_RENDER_BUFFER_TEXCOORDS, SIZE_RENDER_BUFFER_TEXCOORDS/4)
     const wasm_normalBuffer = f32buffer(OFFSET_RENDER_BUFFER_NORMAL, SIZE_RENDER_BUFFER_NORMAL/4)
     const wasm_projMatrix = f32buffer(OFFSET_PROJECTION_MATRIX, NUM_MATRIX4)
@@ -411,11 +471,16 @@ document.addEventListener("DOMContentLoaded", (event) => {
       gl.uniformMatrix4fv(uModelMatrix, false, wasm_modelMatrix)
       gl.uniformMatrix4fv(uNormalMatrix, false, wasm_normalMatrix)
       gl.uniform1i(uUseTexture, useTexture)
-  
+
+      for (let uniform of shaderUniforms) {
+        uniform()
+      }
+
       gl.drawElements(gl_TRIANGLES, indexCount, gl_UNSIGNED_INT, 0)
     }
   
-    const render = (timestamp) => {
+    const render = () => {
+      const timestamp = performance.now()
       const deltaTime = (timestamp - previousRenderTimestamp) / 1000
       previousRenderTimestamp = timestamp
 

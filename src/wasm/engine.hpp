@@ -20,6 +20,7 @@ extern float Math_tan(float a);
 extern void clearFrame();
 extern void triggerDrawCall();
 extern void sendTexture(int ptr, int width, int height);
+extern void registerShaderUniform(const char *name, uint type, void *ptr);
 }
 
 // clang-format off
@@ -62,6 +63,11 @@ extern EngineState engineState;
 void beginFrame();
 void endFrame();
 void flushBuffers();
+
+const uint SHADER_UNIFORM_1f = 0;
+const uint SHADER_UNIFORM_1i = 1;
+const uint SHADER_UNIFORM_Matrix4fv = 2;
+const uint SHADER_UNIFORM_OFFSET = 0;
 
 const int EVENT_KEYDOWN = 1;
 const int EVENT_KEYUP = 2;

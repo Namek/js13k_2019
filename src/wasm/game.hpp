@@ -4,6 +4,7 @@
 #include "common.hpp"
 #include "ecs.hpp"
 #include "math/common.h"
+#include "engine.hpp"
 
 extern "C" {
 WASM_EXPORT void initGame();
@@ -159,7 +160,8 @@ enum Phase
   LevelPresentation, // showing level number, some text
   Playing,           // gameplay: player configures things
   Simulate,          // calculate world state for next frame
-  RewindAnimation,   // when it finishes goes to Playing
+  ShowCollisionBeforeRewind,
+  RewindAnimation, // when it finishes goes to Playing
 };
 
 struct Lane {
@@ -198,6 +200,7 @@ struct Camera {
 
 struct RecordedFrame {
   float deltaTime;
+  float totalTime;
 
   // the rest of frame data is within Vehicle cmp and Froggy cmp
 };
@@ -208,11 +211,13 @@ struct GameState {
   Camera camera;
 
   Phase phase;
+  float phaseTime;
 
   // applies for animation when phase==Rewind
   uint currentFrame;
   Array /* of RecordedFrame */ recordedFrames;
   float rewindCurrentFrameDtLeft;
+  float shaderRewind;
 
   int selectedVehicleEntityId;
 
@@ -226,6 +231,8 @@ extern GameState state;
 #define BOTTOM_UI_HEIGHT 100
 #define BASE_GAME_WIDTH 1200
 #define BASE_GAME_HEIGHT (675 - BOTTOM_UI_HEIGHT)
+
+const uint SHADER_UNIFORM_REWIND = SHADER_UNIFORM_OFFSET;
 
 void initGame();
 void initLevel(int levelIndex);

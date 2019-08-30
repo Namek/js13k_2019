@@ -1,5 +1,4 @@
 #include "game.hpp"
-#include "engine.hpp"
 #include "textures.hpp"
 #include "models/models.hpp"
 
@@ -7,7 +6,10 @@ GameState state;
 const float FROGGY_JUMPING_TIME = 0.4f;
 const float FROGGY_JUMP_AMPLITUDE = 4.5f;
 const float FROGGY_AI_RAY_FACTOR_TO_WIDTH_FOR_NO_JUMP = 2.5f;
-const float REWIND_TIME_FACTOR = 3.5f;
+const float STALL_BEFORE_REWIND_DURATION = 0.7f;
+const float REWIND_TIME_FACTOR = 2.5f;
+const float REWIND_ANIM_SHADER_EFFECT_TURN_ON_DURATION = 0.5f;
+const float REWIND_ANIM_SHADER_EFFECT_TURN_OFF_DURATION = 0.75f;
 
 DEF_ENTITY_SYSTEM(SimulateVehicle, A(Vehicle))
   ref v = getCmpE(Vehicle);
@@ -112,9 +114,8 @@ DEF_ENTITY_SYSTEM(CheckCollisions, A(Collider) | A(Transform))
         x1 + c1.width > x2 &&
         y1 < y2 + c2.height &&
         y1 + c1.height > y2) {
-      _lstr("state.phase", RewindAnimation);
-      state.phase = RewindAnimation;
-      state.rewindCurrentFrameDtLeft = 0;
+      state.phase = ShowCollisionBeforeRewind;
+      state.phaseTime = 0;
     }
   END_FOR_EACH
 END_ENTITY_SYSTEM
@@ -157,6 +158,8 @@ END_ENTITY_SYSTEM
 void recordFrame(float deltaTime);
 
 void initGame() {
+  registerShaderUniform("rewind", SHADER_UNIFORM_1f, &state.shaderRewind);
+
   state.levelGarbage.init(sizeof(void *));
   int sizes[] = COMPONENT_TYPE_SIZES;
   initEcsWorld(state.ecsWorld, sizes, COMPONENT_TYPE_COUNT);
@@ -229,18 +232,24 @@ void recordFrame(float deltaTime) {
     auto newFrame = (FroggyTimeFrame *)frog.simulatedFrames.createPtrAt(state.currentFrame);
     newFrame->transform = t;
     newFrame->state = fstate;
-    _lfstr("rec/frog.pos.y", newFrame->transform.pos.y);
   END_FOR_EACH
-
-  state.currentFrame += 1;
 
   auto frame = (RecordedFrame *)state.recordedFrames.createPtr();
   frame->deltaTime = deltaTime;
+
+  float totalTime = 0;
+  if (state.currentFrame > 0) {
+    auto prevFrame = (RecordedFrame *)state.recordedFrames.getPointer(state.currentFrame - 1);
+    totalTime = prevFrame->totalTime;
+  }
+  frame->totalTime = totalTime + deltaTime;
+
+  state.currentFrame += 1;
 }
 
-bool loadFrame(int frameIndex) {
+RecordedFrame *loadFrame(int frameIndex) {
   if (frameIndex >= state.recordedFrames.size)
-    return false;
+    return NULL;
 
   state.currentFrame = frameIndex;
   _lstr("load/frame", state.currentFrame);
@@ -263,17 +272,13 @@ bool loadFrame(int frameIndex) {
     ref fstate = frog.state;
 
     auto frame = (FroggyTimeFrame *)frog.simulatedFrames.getPointer(state.currentFrame);
-
-
-
     ft.pos = frame->transform.pos;
     memcpy(frame->transform.orientation, ft.orientation, MAT_SIZE_4 * sizeof(float));
     frog.state = frame->state;
-
     _lfstr("load/frog.pos.y", frame->transform.pos.y);
   END_FOR_EACH
 
-  return true;
+  return (RecordedFrame *)state.recordedFrames.getPointer(frameIndex);
 }
 
 // returns numbers:
@@ -310,7 +315,8 @@ void render(float deltaTime) {
 
   // process logic with ECS World
   EcsWorld &world = state.ecsWorld;
-  world.deltaTime = deltaTime * tw(2, 1.0f);
+  const float debugSpeedFactor = tw(2, 1.0f);
+  world.deltaTime = deltaTime * debugSpeedFactor;
 
   Phase phase = state.phase;
 
@@ -323,8 +329,18 @@ void render(float deltaTime) {
     }
     _lstr("recorded frames", state.recordedFrames.size);
   }
+  else if (phase == ShowCollisionBeforeRewind) {
+    state.phaseTime += deltaTime * debugSpeedFactor;
+    // TODO animate camera to show the collision! play some fail sound
+
+    if (state.phaseTime >= STALL_BEFORE_REWIND_DURATION) {
+      state.rewindCurrentFrameDtLeft = 0;
+      state.phase = RewindAnimation;
+      state.phaseTime = 0;
+    }
+  }
   else if (phase == RewindAnimation) {
-    float dtLeft = (state.rewindCurrentFrameDtLeft + deltaTime) * REWIND_TIME_FACTOR * tw(2, 1.0f);
+    float dtLeft = (state.rewindCurrentFrameDtLeft + deltaTime) * REWIND_TIME_FACTOR * debugSpeedFactor;
 
     uint frameIndex = state.currentFrame;
     while (dtLeft >= 0 && frameIndex > 0) {
@@ -332,10 +348,25 @@ void render(float deltaTime) {
       dtLeft -= frame->deltaTime;
     }
     state.rewindCurrentFrameDtLeft = -dtLeft;
-    loadFrame(frameIndex);
+    auto frame = loadFrame(frameIndex);
 
-    if (state.currentFrame == 0)
+    if (frameIndex == 0) {
       state.phase = Playing;
+      state.shaderRewind = 0;
+      state.phaseTime = 0;
+    }
+    else {
+      float leftTime = frame->totalTime / (REWIND_TIME_FACTOR * debugSpeedFactor);
+
+      if (leftTime > REWIND_ANIM_SHADER_EFFECT_TURN_OFF_DURATION) {
+        state.phaseTime += deltaTime;
+        state.shaderRewind = CLAMP01(state.phaseTime / REWIND_ANIM_SHADER_EFFECT_TURN_ON_DURATION);
+      }
+      else {
+        // turn the shader down
+        state.shaderRewind = CLAMP01(leftTime / REWIND_ANIM_SHADER_EFFECT_TURN_OFF_DURATION);
+      }
+    }
   }
   else if (phase == Playing) {
     int goToFrame = (int)tw(1, 0);
