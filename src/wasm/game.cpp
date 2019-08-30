@@ -11,6 +11,12 @@ const float REWIND_TIME_FACTOR = 2.5f;
 const float REWIND_ANIM_SHADER_EFFECT_TURN_ON_DURATION = 0.5f;
 const float REWIND_ANIM_SHADER_EFFECT_TURN_OFF_DURATION = 0.75f;
 
+DEF_ENTITY_SYSTEM(TweenManager, A(Tween))
+  ref t = getCmpE(Tween);
+
+  // TODO
+END_ENTITY_SYSTEM
+
 DEF_ENTITY_SYSTEM(SimulateVehicle, A(Vehicle))
   ref v = getCmpE(Vehicle);
   ref vt = getCmpE(Transform);
@@ -114,8 +120,7 @@ DEF_ENTITY_SYSTEM(CheckCollisions, A(Collider) | A(Transform))
         x1 + c1.width > x2 &&
         y1 < y2 + c2.height &&
         y1 + c1.height > y2) {
-      state.phase = ShowCollisionBeforeRewind;
-      state.phaseTime = 0;
+      goToPhase(ShowCollisionBeforeRewind);
     }
   END_FOR_EACH
 END_ENTITY_SYSTEM
@@ -157,6 +162,25 @@ END_ENTITY_SYSTEM
 
 void recordFrame(float deltaTime);
 
+void goToPhase(Phase newPhase) {
+  state.phase = newPhase;
+  state.phaseTime = 0;
+
+  if (newPhase == Simulate) {
+    state.currentFrame = 0;
+    state.recordedFrames.init(sizeof(RecordedFrame));
+  }
+  else if (newPhase == RewindAnimation) {
+    state.rewindCurrentFrameDtLeft = 0;
+  }
+  else if (newPhase == ShowCollisionBeforeRewind) {
+
+  }
+  else if (newPhase == Playing) {
+    state.shaderRewind = 0;
+  }
+}
+
 void initGame() {
   registerShaderUniform("rewind", SHADER_UNIFORM_1f, &state.shaderRewind);
 
@@ -167,9 +191,7 @@ void initGame() {
   vec3_set(state.camera.dir.vec, 0, 0, -1);
 
   initLevel(0);
-  state.phase = Simulate; // Intro;
-  state.currentFrame = 0;
-  state.recordedFrames.init(sizeof(RecordedFrame));
+  goToPhase(Simulate); // Intro;
   recordFrame(0);
 }
 
@@ -212,6 +234,10 @@ bool onEvent(int eventType, int value) {
   return true;
 }
 
+RecordedFrame *getFrame(int frameIndex) {
+  return (RecordedFrame *)state.recordedFrames.getPointer(frameIndex);
+}
+
 void recordFrame(float deltaTime) {
   ref world = state.ecsWorld;
 
@@ -239,7 +265,7 @@ void recordFrame(float deltaTime) {
 
   float totalTime = 0;
   if (state.currentFrame > 0) {
-    auto prevFrame = (RecordedFrame *)state.recordedFrames.getPointer(state.currentFrame - 1);
+    auto prevFrame = getFrame(state.currentFrame - 1);
     totalTime = prevFrame->totalTime;
   }
   frame->totalTime = totalTime + deltaTime;
@@ -278,7 +304,7 @@ RecordedFrame *loadFrame(int frameIndex) {
     _lfstr("load/frog.pos.y", frame->transform.pos.y);
   END_FOR_EACH
 
-  return (RecordedFrame *)state.recordedFrames.getPointer(frameIndex);
+  return getFrame(frameIndex);
 }
 
 // returns numbers:
@@ -321,6 +347,7 @@ void render(float deltaTime) {
   Phase phase = state.phase;
 
   if (phase == Simulate) {
+    TweenManager(world);
     SimulateVehicle(world);
     SimulateFroggy(world);
     CheckCollisions(world);
@@ -333,10 +360,10 @@ void render(float deltaTime) {
     state.phaseTime += deltaTime * debugSpeedFactor;
     // TODO animate camera to show the collision! play some fail sound
 
+    state.shaderRewind = CLAMP01(state.phaseTime / REWIND_ANIM_SHADER_EFFECT_TURN_ON_DURATION);
+
     if (state.phaseTime >= STALL_BEFORE_REWIND_DURATION) {
-      state.rewindCurrentFrameDtLeft = 0;
-      state.phase = RewindAnimation;
-      state.phaseTime = 0;
+      goToPhase(RewindAnimation);
     }
   }
   else if (phase == RewindAnimation) {
@@ -351,18 +378,12 @@ void render(float deltaTime) {
     auto frame = loadFrame(frameIndex);
 
     if (frameIndex == 0) {
-      state.phase = Playing;
-      state.shaderRewind = 0;
-      state.phaseTime = 0;
+      goToPhase(Playing);
     }
     else {
       float leftTime = frame->totalTime / (REWIND_TIME_FACTOR * debugSpeedFactor);
 
-      if (leftTime > REWIND_ANIM_SHADER_EFFECT_TURN_OFF_DURATION) {
-        state.phaseTime += deltaTime;
-        state.shaderRewind = CLAMP01(state.phaseTime / REWIND_ANIM_SHADER_EFFECT_TURN_ON_DURATION);
-      }
-      else {
+      if (leftTime <= REWIND_ANIM_SHADER_EFFECT_TURN_OFF_DURATION) {
         // turn the shader down
         state.shaderRewind = CLAMP01(leftTime / REWIND_ANIM_SHADER_EFFECT_TURN_OFF_DURATION);
       }

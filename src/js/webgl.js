@@ -309,7 +309,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
       let i = 0
       createInput("cameraChange", i++, 10)
       createInput("go to frame:", i++, -1, 1)
-      createInput("time speed", i++, 1, 0.1)
+      createSwitch("time speed", i++, [1, 3]);
     }
     //endRemoveIf(production)
 

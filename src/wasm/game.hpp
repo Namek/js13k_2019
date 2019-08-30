@@ -30,6 +30,13 @@ enum VertDir
   Down = 1
 };
 
+DEF_COMPONENT(Tween)
+  float *target;
+  uint size;
+  float deltaValue;
+  float leftDuration;
+END_COMPONENT
+
 DEF_COMPONENT(Transform)
   // centerX, centerY of object, baseZ; size in pixels, used for rendering
   Vec3 pos;
@@ -149,7 +156,8 @@ END_COMPONENT
 #define COMPONENT_TYPE_COUNT __COUNTER__
 
 #define COMPONENT_TYPE_SIZES \
-  { SIZE(Transform),         \
+  { SIZE(Tween),             \
+    SIZE(Transform),         \
     SIZE(Collider),          \
     SIZE(Vehicle),           \
     SIZE(Froggy) }
@@ -236,6 +244,7 @@ const uint SHADER_UNIFORM_REWIND = SHADER_UNIFORM_OFFSET;
 
 void initGame();
 void initLevel(int levelIndex);
+void goToPhase(Phase newPhase);
 
 // game_helpers
 float calcCenterX(float onLanePercent);
