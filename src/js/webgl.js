@@ -29,6 +29,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
   , gl_TEXTURE_2D = 3553
   , gl_RGB = 6407
   , gl_RGBA = 6408
+  , gl_UNSIGNED_BYTE = 5121
   , SHADER_UNIFORM_1i = 0
   , SHADER_UNIFORM_1f = 1
   , SHADER_UNIFORM_Matrix4fv = 2
@@ -252,26 +253,12 @@ document.addEventListener("DOMContentLoaded", (event) => {
   
     gl_bindBuffer(gl_ELEMENT_ARRAY_BUFFER, buffer_index)
 
-    gl_bindBuffer(gl_ARRAY_BUFFER, buffer_vertex)
-    const aPos = gl.getAttribLocation(shaderProgram, "pos")
-    gl.vertexAttribPointer(aPos, 3, gl_FLOAT, false, 0, 0)
-    gl.enableVertexAttribArray(aPos)
-
-    gl_bindBuffer(gl_ARRAY_BUFFER, buffer_normal)
-    const aNormal = gl.getAttribLocation(shaderProgram, "nor")
-    gl.vertexAttribPointer(aNormal, 3, gl_FLOAT, false, 0, 0)
-    gl.enableVertexAttribArray(aNormal)
-
-    gl_bindBuffer(gl_ARRAY_BUFFER, buffer_color)
-    const aColor = gl.getAttribLocation(shaderProgram, "color")
-    gl.vertexAttribPointer(aColor, 4, gl_FLOAT, false,0,0) 
-    gl.enableVertexAttribArray(aColor)
-
-    gl_bindBuffer(gl_ARRAY_BUFFER, buffer_texCoords)
-    const aTexCoords = gl.getAttribLocation(shaderProgram, "texC")
-    gl.vertexAttribPointer(aTexCoords, 2, gl_FLOAT, false,0,0)
-    gl.enableVertexAttribArray(aTexCoords)
-
+    for (let attribParam of [["pos", 3, buffer_vertex], ["nor", 3, buffer_normal], ["color", 4, buffer_color], ["texC", 2, buffer_texCoords]]) {
+      gl_bindBuffer(gl_ARRAY_BUFFER, attribParam[2])
+      const attrib = gl.getAttribLocation(shaderProgram, attribParam[0])
+      gl.vertexAttribPointer(attrib, attribParam[1], gl_FLOAT, false, 0, 0)
+      gl.enableVertexAttribArray(attrib)
+    }
 
     /*=========== Initialize the engine =============*/
 
@@ -340,7 +327,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
       gl.bindTexture(gl_TEXTURE_2D, texture)
   
       // gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1); // use bottom-down storage
-      gl.texImage2D(gl_TEXTURE_2D, 0, gl_RGBA, texW, texH, 0, gl_RGBA, gl.UNSIGNED_BYTE, texBytes);
+      gl.texImage2D(gl_TEXTURE_2D, 0, gl_RGBA, texW, texH, 0, gl_RGBA, gl_UNSIGNED_BYTE, texBytes);
       gl.generateMipmap(gl_TEXTURE_2D);
       textures.push(texture)
     }
@@ -511,10 +498,10 @@ document.addEventListener("DOMContentLoaded", (event) => {
   const PIXEL_RATIO = (function () {
     let ctx = document.createElement("canvas").getContext("2d"),
         dpr = window.devicePixelRatio || 1,
-        bsr = ctx.webkitBackingStorePixelRatio ||
+        bsr = /*ctx.webkitBackingStorePixelRatio ||
               ctx.mozBackingStorePixelRatio ||
               ctx.msBackingStorePixelRatio ||
-              ctx.oBackingStorePixelRatio ||
+              ctx.oBackingStorePixelRatio ||*/
               ctx.backingStorePixelRatio || 1;
 
     return dpr / bsr;
