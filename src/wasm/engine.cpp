@@ -67,6 +67,7 @@ void initEngine() {
   registerShaderUniform("viewMat", SHADER_UNIFORM_Matrix4fv, e.viewMatrix);
   registerShaderUniform("mdlMat", SHADER_UNIFORM_Matrix4fv, e.modelMatrix);
   registerShaderUniform("norMat", SHADER_UNIFORM_Matrix4fv, e.normalMatrix);
+  registerShaderUniform("useTex", SHADER_UNIFORM_1i, &e.useTexture);
 }
 
 void beginFrame() {
@@ -95,6 +96,7 @@ void flushBuffers() {
   ret[0] = e.vertexCount;
   ret[1] = e.indexCount;
   ret[2] = e.currentTextureId;
+  e.useTexture = e.currentTextureId >= 0;
 
   memcpy(
       e.viewMatrix,

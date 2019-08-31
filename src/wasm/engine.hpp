@@ -33,6 +33,7 @@ struct EngineState {
    *funcReturn
   , funcReturn_size
   ,*renderIndexBuffer
+  , useTexture //boolean: 1 or 0
   ;
 
   float

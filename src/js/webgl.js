@@ -395,9 +395,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
     const wasm_texCoordsBuffer = f32buffer(OFFSET_RENDER_BUFFER_TEXCOORDS, SIZE_RENDER_BUFFER_TEXCOORDS/4)
     const wasm_normalBuffer = f32buffer(OFFSET_RENDER_BUFFER_NORMAL, SIZE_RENDER_BUFFER_NORMAL/4)
 
-    const uUseTexture = gl.getUniformLocation(shaderProgram, 'useTex')
-  
-  
+
     /*================ Drawing the game =================*/
   
     let previousRenderTimestamp = null
@@ -414,8 +412,6 @@ document.addEventListener("DOMContentLoaded", (event) => {
       const vertexCount = wasm_funcReturnValues[0]
       const indexCount = wasm_funcReturnValues[1]
       const currentTextureId = wasm_funcReturnValues[2]
-      const useTexture = currentTextureId >= 0
-  
 
       gl_bindBuffer(gl_ARRAY_BUFFER, buffer_vertex)
       gl_bufferData(gl_ARRAY_BUFFER, wasm_vertexBuffer.subarray(0, vertexCount*VALUES_PER_VERTEX), gl_STATIC_DRAW)
@@ -432,12 +428,10 @@ document.addEventListener("DOMContentLoaded", (event) => {
       gl_bufferData(gl_ARRAY_BUFFER, wasm_colorBuffer.subarray(0, vertexCount*VALUES_PER_COLOR), gl_STATIC_DRAW)
       gl_bindBuffer(gl_ARRAY_BUFFER, buffer_texCoords)
       gl_bufferData(gl_ARRAY_BUFFER, wasm_texCoordsBuffer.subarray(0, vertexCount*VALUES_PER_TEXCOORD), gl_STATIC_DRAW)
-      if (useTexture) {
+      if (currentTextureId >= 0) {
         gl.bindTexture(gl_TEXTURE_2D, textures[currentTextureId])
       }
-      gl_bindBuffer(gl_ARRAY_BUFFER, null)
 
-      gl.uniform1i(uUseTexture, useTexture)
       for (let uniform of shaderUniforms) {
         uniform()
       }
