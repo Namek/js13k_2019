@@ -2,7 +2,7 @@
 #include "utils/memory.hpp"
 
 EngineState engineState;
-EngineState &e = engineState;
+#define e (engineState)
 
 const int MAX_TRIANGLES = 1024;
 

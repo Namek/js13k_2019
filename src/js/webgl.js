@@ -219,14 +219,13 @@ document.addEventListener("DOMContentLoaded", (event) => {
       'uniform sampler2D tex;'+
       'uniform bool useTex;'+
       'uniform float rewind;'+
-      `vec4 Sepia(vec4 c) {
-          return vec4(
-                clamp(c.r * 0.393 + c.g * 0.769 + c.b * 0.189, 0.0, 1.0)
-              , clamp(c.r * 0.349 + c.g * 0.686 + c.b * 0.168, 0.0, 1.0)
-              , clamp(c.r * 0.272 + c.g * 0.534 + c.b * 0.131, 0.0, 1.0)
-              , c.a
-          );
-      }`+
+      'vec4 Sepia(vec4 c) {'+
+        'return vec4('+
+          'c.r * 0.393 + c.g * 0.769 + c.b * 0.189,'+
+          'c.r * 0.349 + c.g * 0.686 + c.b * 0.168,'+
+          'c.r * 0.272 + c.g * 0.534 + c.b * 0.131,'+
+          'c.a);'+
+      '}'+
       'void main(void) {'+
         'vec4 color;'+
         'if (useTex) {'+
