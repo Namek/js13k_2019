@@ -266,7 +266,6 @@ void index(int i) {
   e.indexCount += 1;
 }
 
-// vertices should
 void calculateTriangleNormal(uint firstVertexIndex, uint faceSize) {
   static Vec3 u;
   static Vec3 v;
@@ -277,10 +276,6 @@ void calculateTriangleNormal(uint firstVertexIndex, uint faceSize) {
   vec3_cross(u.vec, u.vec, v.vec);
   float len = sqrt(u.x * u.x + u.y * u.y + u.z * u.z);
   vec3_scale(u.vec, u.vec, 1.0f / len);
-
-  // _lfstr("nor.x", u.x);
-  // _lfstr("nor.y", u.y);
-  // _lfstr("nor.z", u.z);
 
   for (int j = 0; j < faceSize; ++j) {
     for (int k = 0; k < 3; ++k) {
@@ -456,7 +451,6 @@ int rgb(int r, int g, int b) {
 
 void rect(float x, float y, float z, float width, float height) {
   setTexture(-1);
-  // quad(x, y, z, x, y + height, z, x + width, y + height, z, x + width, y, z);
   quad(
       x, y, z,
       x + width, y, z,

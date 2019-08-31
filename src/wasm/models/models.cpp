@@ -24,9 +24,11 @@ void renderModel3d(Model3d &model) {
   static float faceNormal[3];
 
 #ifndef PRODUCTION
+#ifdef DEBUG_NORMALS
   static float curColor[4];
   for (uint i = 0; i < 4; ++i)
     curColor[i] = engineState.currentColor[i];
+#endif
 #endif
 
   for (int fsize = 3, fiTotal = 0; fsize <= 4; ++fsize) {
