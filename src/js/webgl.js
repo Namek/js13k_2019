@@ -338,35 +338,32 @@ document.addEventListener("DOMContentLoaded", (event) => {
     ]
     registerShaderUniform = (namePtr, type, valuePtr) => {
       const name = readTextFromMemory(namePtr)
+      const u = 'uniform'
 
       //removeIf(production)
       if (shaderUniforms.filter(s => s.name == name).length > 0)
         throw new Error("shader already registered")
       //endRemoveIf(production)
 
-      let suffix, size, bufferFn
+      let suffix, size = 1, bufferFn = f32buffer
       if (type == SHADER_UNIFORM_1i) {
         suffix = "1i"
-        size = 1
         bufferFn = i32buffer
       }
       else if (type == SHADER_UNIFORM_1f) {
         suffix = "1f"
-        size = 1
-        bufferFn = f32buffer
       }
       else if (type == SHADER_UNIFORM_Matrix4fv) {
         suffix = "Matrix4fv"
         size = NUM_MATRIX4
-        bufferFn = f32buffer
       }
 
       const isMatrix = type == SHADER_UNIFORM_Matrix4fv
       const loc = gl.getUniformLocation(shaderProgram, name)
       const wasm_data = bufferFn(valuePtr, size)
       const fetchValue = isMatrix
-        ? () => { gl['uniform' + suffix](loc, false, wasm_data) }
-        : () => { gl['uniform' + suffix](loc, wasm_data) }
+        ? () => { gl[u + suffix](loc, false, wasm_data) }
+        : () => { gl[u + suffix](loc, wasm_data) }
 
       shaderUniforms.push(fetchValue)
     }
