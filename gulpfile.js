@@ -125,7 +125,7 @@ gulp.task('build-cpp', (done) => {
 		// optimize .wasm size
 		const destPathOpt = `${destPath}-opt`
 		exec('wasm-opt', args(`
-			-O4
+			-Oz
 			${destPath}
 			-o ${destPathOpt}`
 		))
