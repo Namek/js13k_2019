@@ -243,7 +243,8 @@ void initLevel(int levelIndex);
 void goToPhase(Phase newPhase);
 RecordedFrame *getFrame(int frameIndex);
 RecordedFrame *loadFrame(int frameIndex);
-void recordFrame();
+void recordFrame(float deltaTime);
+void animateRewind(float deltaTime, float debugSpeedFactor);
 
 // game_helpers
 float calcCenterX(float onLanePercent);
@@ -253,5 +254,16 @@ bool isAnyVehicleOnSight(uint laneIndex, float x, float y, float rayWidth);
 
 // debug
 void debugRect(Transform &t, Collider &c);
+
+
+
+const float FROGGY_JUMPING_TIME = 0.4f;
+const float FROGGY_JUMP_AMPLITUDE = 4.5f;
+const float FROGGY_AI_RAY_FACTOR_TO_WIDTH_FOR_NO_JUMP = 2.5f;
+const float STALL_BEFORE_REWIND_DURATION = 0.7f;
+const float REWIND_TIME_FACTOR = 2.5f;
+const float REWIND_ANIM_SHADER_EFFECT_TURN_ON_DURATION = 0.5f;
+const float REWIND_ANIM_SHADER_EFFECT_TURN_OFF_DURATION = 0.75f;
+
 
 #endif
