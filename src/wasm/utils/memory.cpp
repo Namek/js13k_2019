@@ -100,3 +100,12 @@ void memcpy(void* dst, const void* src, int len) {
     d[i] = s[i];
   }
 }
+
+void memset(void* pointer, uchar value, uint size) {
+  auto ptr = (uchar*)pointer;
+  auto endPtr = ptr + size;
+
+  while (ptr++ != endPtr) {
+    *ptr = value;
+  }
+}

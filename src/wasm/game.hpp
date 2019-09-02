@@ -211,6 +211,7 @@ struct GameState {
   Tweens tweens;
   Level currentLevel;
   Camera camera;
+  bool keyState[256];
 
   Phase phase;
   float phaseTime;

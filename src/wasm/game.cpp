@@ -187,6 +187,7 @@ void goToPhase(Phase newPhase) {
 void initGame() {
   registerShaderUniform("rewind", SHADER_UNIFORM_1f, &state.shaderRewind);
 
+  memset(state.keyState, 0, sizeof(state.keyState) / 8);
   initTweens(state.tweens);
   state.levelGarbage.init(sizeof(void *));
   int sizes[] = COMPONENT_TYPE_SIZES;
@@ -200,41 +201,29 @@ void initGame() {
 }
 
 bool onEvent(int eventType, int value) {
-  if (eventType != EVENT_KEYDOWN) {
-    return false;
-  }
+  if (eventType == EVENT_KEYDOWN || eventType == EVENT_KEYUP) {
+    state.keyState[value] = eventType == EVENT_KEYDOWN;
 
-  if (value == KEY_RIGHT) {
-    if (state.phase == Playing) {
-      loadFrame(state.currentFrame + 10);
+    switch (value) {
+    case KEY_RIGHT:
+    case KEY_LEFT:
+    case KEY_UP:
+    case KEY_DOWN:
+    case 'D':
+    case 'A':
+    case 'W':
+    case 'S':
+    case 107 /*KP_PLUS*/:
+    case 187 /*plus*/:
+    case 109 /*KP_MINUS*/:
+    case 189 /*minus*/:
+    case '-':
+      return true;
+
+    default:
+      _l(value);
+      return false;
     }
-  }
-  else if (value == KEY_LEFT) {
-    if (state.phase == Playing) {
-      loadFrame(state.currentFrame - 10);
-    }
-  }
-  else if (value == KEY_UP) {
-  }
-  else if (value == KEY_RIGHT) {
-  }
-  else if (value == 102 /*KP_RIGHT*/) {
-    state.camera.pos.x += tw(0, 10);
-  }
-  else if (value == 100 /*KP_LEFT*/) {
-    state.camera.pos.x -= tw(0, 10);
-  }
-  else if (value == 104 /*KP_UP*/) {
-    state.camera.pos.y -= tw(0, 10);
-  }
-  else if (value == 98 /*KP_DOWN*/) {
-    state.camera.pos.y += tw(0, 10);
-  }
-  else if (value == 107 /*KP_PLUS*/) {
-    state.camera.pos.z -= tw(0, 10);
-  }
-  else if (value == 109 /*KP_MINUS*/) {
-    state.camera.pos.z += tw(0, 10);
   }
   else {
     _l(value);
@@ -242,6 +231,43 @@ bool onEvent(int eventType, int value) {
   }
 
   return true;
+}
+
+void updateOnKeys() {
+  ref s = state.keyState;
+  if (s[KEY_RIGHT]) {
+    if (state.phase == Playing) {
+      loadFrame(state.currentFrame + 10);
+    }
+  }
+  else if (s[KEY_LEFT]) {
+    if (state.phase == Playing) {
+      loadFrame(state.currentFrame - 10);
+    }
+  }
+  if (s[KEY_UP]) {
+  }
+  else if (s[KEY_DOWN]) {
+  }
+
+  if (s[102] /*KP_RIGHT*/ || s['D']) {
+    state.camera.pos.x += tw(0, 10);
+  }
+  else if (s[100] /*KP_LEFT*/ || s['A']) {
+    state.camera.pos.x -= tw(0, 10);
+  }
+  if (s[104] /*KP_UP*/ || s['W']) {
+    state.camera.pos.y -= tw(0, 10);
+  }
+  else if (s[98] /*KP_DOWN*/ || s['S']) {
+    state.camera.pos.y += tw(0, 10);
+  }
+  if (s[107] /*KP_PLUS*/ || s[187] /*plus*/) {
+    state.camera.pos.z -= tw(0, 10);
+  }
+  else if (s[109] /*KP_MINUS*/ || s[189] /*minus*/) {
+    state.camera.pos.z += tw(0, 10);
+  }
 }
 
 RecordedFrame *getFrame(int frameIndex) {
@@ -335,6 +361,8 @@ void render(float deltaTime) {
   const float fieldOfView = 90.0 * PI_180;
 
   const float zNear = 0;
+
+  updateOnKeys();
 
   // axis X goes right, axis Y goes down, axis Z goes towards viewer
   mat4_perspective(getProjectionMatrix(), fieldOfView, aspectRatio, 1, 2000.0);
