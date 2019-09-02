@@ -212,6 +212,7 @@ struct GameState {
   Level currentLevel;
   Camera camera;
   bool keyState[256];
+  float timeSinceLastRender;
 
   Phase phase;
   float phaseTime;
@@ -255,8 +256,8 @@ bool isAnyVehicleOnSight(uint laneIndex, float x, float y, float rayWidth);
 // debug
 void debugRect(Transform &t, Collider &c);
 
-
-
+const int MAX_FRAMES_PER_SECOND = 60;
+const float TIME_PER_FRAME = 1.0f / MAX_FRAMES_PER_SECOND;
 const float FROGGY_JUMPING_TIME = 0.4f;
 const float FROGGY_JUMP_AMPLITUDE = 4.5f;
 const float FROGGY_AI_RAY_FACTOR_TO_WIDTH_FOR_NO_JUMP = 2.5f;
@@ -264,6 +265,5 @@ const float STALL_BEFORE_REWIND_DURATION = 0.7f;
 const float REWIND_TIME_FACTOR = 2.5f;
 const float REWIND_ANIM_SHADER_EFFECT_TURN_ON_DURATION = 0.5f;
 const float REWIND_ANIM_SHADER_EFFECT_TURN_OFF_DURATION = 0.75f;
-
 
 #endif

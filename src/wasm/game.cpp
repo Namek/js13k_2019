@@ -178,6 +178,7 @@ void goToPhase(Phase newPhase) {
 void initGame() {
   registerShaderUniform("rewind", SHADER_UNIFORM_1f, &state.shaderRewind);
 
+  state.timeSinceLastRender = 0;
   memset(state.keyState, 0, sizeof(state.keyState) / 8);
   initTweens(state.tweens);
   state.levelGarbage.init(sizeof(void *));
@@ -261,13 +262,9 @@ void updateOnKeys() {
   }
 }
 
-// returns numbers:
-//  - number of vertices (same as number of colors)
-//  - number of indices
-void render(float deltaTime) {
+void renderGame(float deltaTime) {
   beginFrame();
 
-  // TODO apply scale between BASE_GAME_WIDTH and `w` etc. - in case of canvas resize
   float canvasWidth = getCanvasWidth();
   float canvasHeight = getCanvasHeight();
   float h = canvasHeight - BOTTOM_UI_HEIGHT;
@@ -441,4 +438,12 @@ void render(float deltaTime) {
   }
 
   endFrame();
+}
+
+void render(float deltaTime) {
+  state.timeSinceLastRender += deltaTime;
+  while (state.timeSinceLastRender - TIME_PER_FRAME >= 0.0f) {
+    state.timeSinceLastRender -= TIME_PER_FRAME;
+    renderGame(TIME_PER_FRAME);
+  }
 }
