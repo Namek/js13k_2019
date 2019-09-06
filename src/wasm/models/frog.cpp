@@ -127,7 +127,7 @@ float* renderFrog(float translation[VEC_SIZE_3], float orientation[MAT_SIZE_4]) 
   mat4_rotateZ(mat, mat, toRadian(90));
   // mat4_translate(mat, mat, vec3_set(vec3Tmp, 0, 0, tZ));
   mat4_scale(mat, mat, vec3_set(vec3Tmp, frogScale, frogScale, frogScale));
-  ref model = getModel_frog();
+  Ref model = getModel_frog();
 
   setColor(1, 182/255, 1, 109/255);
   renderModel3d(model);

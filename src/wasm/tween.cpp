@@ -8,7 +8,7 @@ void initTweens(Tweens &tweens) {
 
 void updateTweens(Tweens &tweens, float deltaTime) {
   for (uint i = 0, n = tweens.size; i < n; ++i) {
-    ref t = *(Tween *)tweens.getPointer(i);
+    Ref t = *(Tween *)tweens.getPointer(i);
 
     if (!t.active)
       continue;
@@ -51,7 +51,7 @@ void tween(
     Tweens &tweens, float duration, TweenDataType dataType, uint size,
     void *target, TweenValue from, TweenValue to, TweenProgressType progressType) {
 
-  ref t = *(Tween *)tweens.createPtr();
+  Ref t = *(Tween *)tweens.createPtr();
   t.active = true;
   t.duration = duration;
   t.dataType = dataType;

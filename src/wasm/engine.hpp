@@ -16,10 +16,9 @@ WASM_EXPORT void setTweakValue(int index, float value);
 
 extern float getCanvasWidth();
 extern float getCanvasHeight();
-extern float Math_tan(float a);
 extern void clearFrame();
 extern void triggerDrawCall();
-extern void sendTexture(int ptr, int width, int height);
+extern void sendTexture(void *ptr, int width, int height);
 extern void registerShaderUniform(const char *name, uint type, void *ptr);
 }
 

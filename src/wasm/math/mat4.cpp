@@ -280,7 +280,7 @@ float *mat4_invert(float *out, float *a) {
   if (!det) {
     return NULL;
   }
-  det = 1.0 / det;
+  det = 1.0f / det;
 
   out[0] = (a11 * b11 - a12 * b10 + a13 * b09) * det;
   out[1] = (a02 * b10 - a01 * b11 - a03 * b09) * det;
@@ -523,7 +523,7 @@ float *mat4_rotate(float *out, float *a, float rad, float *axis) {
     return NULL;
   }
 
-  len = 1.0 / len;
+  len = 1.0f / len;
   x *= len;
   y *= len;
   z *= len;
@@ -791,7 +791,7 @@ float *mat4_fromRotation(float *out, float rad, float *axis) {
     return NULL;
   }
 
-  len = 1.0 / len;
+  len = 1.0f / len;
   x *= len;
   y *= len;
   z *= len;
@@ -1037,8 +1037,8 @@ float *mat4_getRotation(float *out, float *mat) {
   float S = 0;
 
   if (trace > 0) {
-    S = sqrt(trace + 1.0) * 2;
-    out[3] = 0.25 * S;
+    S = sqrt(trace + 1.0f) * 2;
+    out[3] = 0.25f * S;
     out[0] = (mat[6] - mat[9]) / S;
     out[1] = (mat[8] - mat[2]) / S;
     out[2] = (mat[1] - mat[4]) / S;
@@ -1046,7 +1046,7 @@ float *mat4_getRotation(float *out, float *mat) {
   else if ((mat[0] > mat[5]) & (mat[0] > mat[10])) {
     S = sqrt(1.0 + mat[0] - mat[5] - mat[10]) * 2;
     out[3] = (mat[6] - mat[9]) / S;
-    out[0] = 0.25 * S;
+    out[0] = 0.25f * S;
     out[1] = (mat[1] + mat[4]) / S;
     out[2] = (mat[8] + mat[2]) / S;
   }
@@ -1054,7 +1054,7 @@ float *mat4_getRotation(float *out, float *mat) {
     S = sqrt(1.0 + mat[5] - mat[0] - mat[10]) * 2;
     out[3] = (mat[8] - mat[2]) / S;
     out[0] = (mat[1] + mat[4]) / S;
-    out[1] = 0.25 * S;
+    out[1] = 0.25f * S;
     out[2] = (mat[6] + mat[9]) / S;
   }
   else {
@@ -1062,7 +1062,7 @@ float *mat4_getRotation(float *out, float *mat) {
     out[3] = (mat[1] - mat[4]) / S;
     out[0] = (mat[8] + mat[2]) / S;
     out[1] = (mat[6] + mat[9]) / S;
-    out[2] = 0.25 * S;
+    out[2] = 0.25f * S;
   }
 
   return out;
@@ -1250,9 +1250,9 @@ float *mat4_fromQuat(float *out, float *q) {
  * @returns {mat4} out
  */
 float *mat4_frustum(float *out, float left, float right, float bottom, float top, float near, float far) {
-  float rl = 1.0 / (right - left);
-  float tb = 1.0 / (top - bottom);
-  float nf = 1.0 / (near - far);
+  float rl = 1.0f / (right - left);
+  float tb = 1.0f / (top - bottom);
+  float nf = 1.0f / (near - far);
   out[0] = (near * 2) * rl;
   out[1] = 0;
   out[2] = 0;
@@ -1283,8 +1283,8 @@ float *mat4_frustum(float *out, float left, float right, float bottom, float top
  * @returns {mat4} out
  */
 float *mat4_perspective(float *out, float fovy, float aspect, float near, float far) {
-  float f = 1.0 / tan(fovy / 2);
-  float nf = 1.0 / (near - far);
+  float f = 1.0f / tan(fovy / 2);
+  float nf = 1.0f / (near - far);
   out[0] = f / aspect;
   out[1] = 0;
   out[2] = 0;
@@ -1323,25 +1323,25 @@ float *mat4_perspectiveFromFieldOfView(float *out, float upDegrees, float downDe
   float downTan = tan(downDegrees * PI_180);
   float leftTan = tan(leftDegrees * PI_180);
   float rightTan = tan(rightDegrees * PI_180);
-  float xScale = 2.0 / (leftTan + rightTan);
-  float yScale = 2.0 / (upTan + downTan);
+  float xScale = 2.0f / (leftTan + rightTan);
+  float yScale = 2.0f / (upTan + downTan);
 
   out[0] = xScale;
-  out[1] = 0.0;
-  out[2] = 0.0;
-  out[3] = 0.0;
-  out[4] = 0.0;
+  out[1] = 0.0f;
+  out[2] = 0.0f;
+  out[3] = 0.0f;
+  out[4] = 0.0f;
   out[5] = yScale;
-  out[6] = 0.0;
-  out[7] = 0.0;
-  out[8] = -((leftTan - rightTan) * xScale * 0.5);
-  out[9] = ((upTan - downTan) * yScale * 0.5);
+  out[6] = 0.0f;
+  out[7] = 0.0f;
+  out[8] = -((leftTan - rightTan) * xScale * 0.5f);
+  out[9] = ((upTan - downTan) * yScale * 0.5f);
   out[10] = far / (near - far);
-  out[11] = -1.0;
-  out[12] = 0.0;
-  out[13] = 0.0;
+  out[11] = -1.0f;
+  out[12] = 0.0f;
+  out[13] = 0.0f;
   out[14] = (far * near) / (near - far);
-  out[15] = 0.0;
+  out[15] = 0.0f;
   return out;
 };
 

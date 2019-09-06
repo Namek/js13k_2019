@@ -1,0 +1,157 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Header Files\common">
+      <UniqueIdentifier>{2819f019-5f8a-406d-bc16-ec69dce13477}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\common\math">
+      <UniqueIdentifier>{2ced349c-a9cc-47ae-bf46-c13aca01b49e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\common\models">
+      <UniqueIdentifier>{d8f9569c-2655-4aea-9d67-b798cc9be517}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\common">
+      <UniqueIdentifier>{2be9e509-df94-49e9-9dfd-baa123902460}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\common\math">
+      <UniqueIdentifier>{abb28365-ca44-4183-807e-9815a58e117b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\common\models">
+      <UniqueIdentifier>{5c435d42-5fa4-4020-b11c-39db3b9bbbdd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\common\utils">
+      <UniqueIdentifier>{70254842-4bed-4da9-81fb-2f9970a16434}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\common\utils">
+      <UniqueIdentifier>{de2fb825-ba82-4bd6-a416-b6f3835ce6dc}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="framework.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="targetver.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="gl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\wasm\common.hpp">
+      <Filter>Header Files\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\wasm\ecs.hpp">
+      <Filter>Header Files\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\wasm\engine.hpp">
+      <Filter>Header Files\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\wasm\game.hpp">
+      <Filter>Header Files\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\wasm\textures.hpp">
+      <Filter>Header Files\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\wasm\tween.hpp">
+      <Filter>Header Files\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\wasm\math\common.h">
+      <Filter>Header Files\common\math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\wasm\models\models.hpp">
+      <Filter>Header Files\common\models</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\wasm\utils\array.hpp">
+      <Filter>Header Files\common\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\wasm\utils\memory.hpp">
+      <Filter>Header Files\common\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="window.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="gl.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\wasm\models\frog.cpp">
+      <Filter>Source Files\common\models</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\wasm\models\models.cpp">
+      <Filter>Source Files\common\models</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\wasm\math\common.cpp">
+      <Filter>Source Files\common\math</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\wasm\math\mat4.cpp">
+      <Filter>Source Files\common\math</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\wasm\math\vec3.cpp">
+      <Filter>Source Files\common\math</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\wasm\math\vec4.cpp">
+      <Filter>Source Files\common\math</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\wasm\debug.cpp">
+      <Filter>Source Files\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\wasm\ecs.cpp">
+      <Filter>Source Files\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\wasm\engine.cpp">
+      <Filter>Source Files\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\wasm\game.cpp">
+      <Filter>Source Files\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\wasm\game_helpers.cpp">
+      <Filter>Source Files\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\wasm\game_timemachine.cpp">
+      <Filter>Source Files\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\wasm\levels.cpp">
+      <Filter>Source Files\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\wasm\textures.cpp">
+      <Filter>Source Files\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\wasm\tween.cpp">
+      <Filter>Source Files\common</Filter>
+    </ClCompile>
+    <ClCompile Include="window.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="gl.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="small.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="gl.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
+</Project>

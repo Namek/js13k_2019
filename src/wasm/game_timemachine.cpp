@@ -5,11 +5,11 @@ RecordedFrame *getFrame(int frameIndex) {
 }
 
 void recordFrame(float deltaTime) {
-  ref world = state.ecsWorld;
+  Ref world = state.ecsWorld;
 
   FOR_EACH_ENTITY(world, A(Vehicle) | A(Transform))
-    ref v = getCmpE(Vehicle);
-    ref vt = getCmpE(Transform);
+    Ref v = getCmpE(Vehicle);
+    Ref vt = getCmpE(Transform);
 
     auto newFrame = (VehicleTimeFrame *)v.paramsDynamicSimulatedFrames.createPtrAt(state.currentFrame);
     newFrame->transform = vt;
@@ -17,9 +17,9 @@ void recordFrame(float deltaTime) {
   END_FOR_EACH
 
   FOR_EACH_ENTITY(world, A(Froggy) | A(Transform))
-    ref frog = getCmpE(Froggy);
-    ref t = getCmpE(Transform);
-    ref fstate = frog.state;
+    Ref frog = getCmpE(Froggy);
+    Ref t = getCmpE(Transform);
+    Ref fstate = frog.state;
 
     auto newFrame = (FroggyTimeFrame *)frog.simulatedFrames.createPtrAt(state.currentFrame);
     newFrame->transform = t;
@@ -46,11 +46,11 @@ RecordedFrame *loadFrame(int frameIndex) {
   state.currentFrame = frameIndex;
   _lstr("load/frame", state.currentFrame);
 
-  ref world = state.ecsWorld;
+  Ref world = state.ecsWorld;
 
   FOR_EACH_ENTITY(world, A(Vehicle) | A(Transform))
-    ref v = getCmpE(Vehicle);
-    ref vt = getCmpE(Transform);
+    Ref v = getCmpE(Vehicle);
+    Ref vt = getCmpE(Transform);
 
     auto frame = (VehicleTimeFrame *)v.paramsDynamicSimulatedFrames.getPointer(state.currentFrame);
     vt.pos = frame->transform.pos;
@@ -59,9 +59,9 @@ RecordedFrame *loadFrame(int frameIndex) {
   END_FOR_EACH
 
   FOR_EACH_ENTITY(world, A(Froggy) | A(Transform))
-    ref frog = getCmpE(Froggy);
-    ref ft = getCmpE(Transform);
-    ref fstate = frog.state;
+    Ref frog = getCmpE(Froggy);
+    Ref ft = getCmpE(Transform);
+    Ref fstate = frog.state;
 
     auto frame = (FroggyTimeFrame *)frog.simulatedFrames.getPointer(state.currentFrame);
     ft.pos = frame->transform.pos;

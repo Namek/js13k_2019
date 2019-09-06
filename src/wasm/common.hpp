@@ -1,7 +1,9 @@
 #ifndef COMMON_H
 #define COMMON_H
 
+#ifndef WIN32
 typedef unsigned long size_t;
+#endif
 typedef unsigned char uchar;
 typedef unsigned short ushort;
 typedef unsigned int uint;
@@ -9,8 +11,12 @@ typedef unsigned int uint;
 
 #include "utils/memory.hpp"
 
+#ifdef WIN32
+#define WASM_EXPORT
+#else
 #define WASM_EXPORT __attribute__((used))
-#define ref auto &
+#endif
+#define Ref auto &
 
 extern "C" {
 #ifndef PRODUCTION
@@ -27,6 +33,12 @@ extern void _lfstr(const char *text, float num);
 #define _lfstr(_, __) {};
 #endif
 
+#ifdef WIN32
+#include <stdlib.h>
+#include <math.h>
+#define randomf() ((float)rand() / (float)RAND_MAX)
+#define abs(a) fabs(a)
+#else
 extern float randomf(); // returns 0..1 float. 'f' suffix is here because of collision with stdlib function
 extern int round(float);
 extern int floor(float);
@@ -38,6 +50,7 @@ extern float tan(float);
 extern float sqrt(float);
 extern float abs(float);
 extern float pow(float, float);
+#endif
 }
 
 #endif

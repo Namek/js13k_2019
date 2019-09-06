@@ -13,15 +13,23 @@ void grass(int *tex);
 
 #define SEND_TEXTURE(fn) \
   fn(tex);                   \
-  sendTexture((int)tex, texInfo.width, texInfo.height);
+  sendTexture(tex, texInfo.width, texInfo.height);
 
 // call it before initEngine()
 void generateTextures() {
-  int textureStart = align((int)((char*)engineState.funcReturn + engineState.funcReturn_size + 1 + 2), 4); //make some space for info about textures
+#ifdef WIN32
+  int *tex = (int *)malloc(1000 * 1000 * 3);
+#else
+  int textureStart = align((int)((char *)engineState.funcReturn + engineState.funcReturn_size + 1 + 2), 4); //make some space for info about textures
   int *tex = (int *)textureStart;
+#endif
 
   SEND_TEXTURE(checkerboard)
   SEND_TEXTURE(grass)
+
+#ifdef WIN32
+  free(tex);
+#endif
 }
 
 void checkerboard(int *tex) {

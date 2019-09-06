@@ -17,3 +17,9 @@ float CLAMP01(float a) {
 float LERP(float alpha, float from, float to) {
   return from * (1.0f - alpha) + (float)to * alpha;
 }
+
+int SIGNUM(float val) {
+  if (val > 0.0f) return 1;
+  else if (val < 0.0f) return -1;
+  else return 0;
+}

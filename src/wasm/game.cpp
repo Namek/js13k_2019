@@ -5,11 +5,11 @@
 GameState state;
 
 DEF_ENTITY_SYSTEM(SimulateVehicle, A(Vehicle))
-  ref v = getCmpE(Vehicle);
-  ref vt = getCmpE(Transform);
+  Ref v = getCmpE(Vehicle);
+  Ref vt = getCmpE(Transform);
 
   // change speed due to player's settings
-  ref speedChangeFactor = v.paramsConfiguredByPlayer.speedChangeFactor;
+  Ref speedChangeFactor = v.paramsConfiguredByPlayer.speedChangeFactor;
   if (speedChangeFactor != 0) {
     v.paramsDynamicCurrent.speed += speedChangeFactor * deltaTime * deltaTime;
     v.paramsDynamicCurrent.speed = CLAMP(v.paramsDynamicCurrent.speed, 0, v.paramsStatic->maxSpeed);
@@ -18,7 +18,7 @@ DEF_ENTITY_SYSTEM(SimulateVehicle, A(Vehicle))
   // TODO in future, we should simulate some more physics instead of updating horz/vert separately
 
   // update horizontal position
-  ref lane = getLaneForVehicle(state.currentLevel, v);
+  Ref lane = getLaneForVehicle(state.currentLevel, v);
   float diffX = v.paramsDynamicCurrent.speed * deltaTime * lane.horzDir;
   vt.pos.x += diffX;
 
@@ -33,10 +33,10 @@ DEF_ENTITY_SYSTEM(SimulateVehicle, A(Vehicle))
 END_ENTITY_SYSTEM
 
 DEF_ENTITY_SYSTEM(SimulateFroggy, A(Froggy) | A(Transform) | A(Collider))
-  ref frog = getCmpE(Froggy);
-  ref t = getCmpE(Transform);
-  ref c = getCmpE(Collider);
-  ref fstate = frog.state;
+  Ref frog = getCmpE(Froggy);
+  Ref t = getCmpE(Transform);
+  Ref c = getCmpE(Collider);
+  Ref fstate = frog.state;
 
   // cast ray upfront over the road with small amount of timing prediction (wider ray)
   if (fstate.phase == WaitForJump) {
@@ -54,10 +54,10 @@ DEF_ENTITY_SYSTEM(SimulateFroggy, A(Froggy) | A(Transform) | A(Collider))
     if (!isAnyVehicleOnSight(fstate.nextLaneIndex, t.pos.x, t.pos.y, c.width * FROGGY_AI_RAY_FACTOR_TO_WIDTH_FOR_NO_JUMP)) {
       fstate.phase = DuringJump;
       fstate.phaseProgress = 0;
-      fstate.jumpingFrom[X] = t.pos.x;
-      fstate.jumpingFrom[Y] = t.pos.y;
-      fstate.jumpingTo[X] = t.pos.x;
-      fstate.jumpingTo[Y] = calcCenterYForLane(fstate.nextLaneIndex);
+      fstate.jumpingFrom[0] = t.pos.x;
+      fstate.jumpingFrom[1] = t.pos.y;
+      fstate.jumpingTo[0] = t.pos.x;
+      fstate.jumpingTo[1] = calcCenterYForLane(fstate.nextLaneIndex);
       fstate.nextLaneIndex -= fstate.yDirection;
     }
   }
@@ -79,14 +79,12 @@ DEF_ENTITY_SYSTEM(SimulateFroggy, A(Froggy) | A(Transform) | A(Collider))
       }
     }
   }
-
-  // TODO record a state frame
 END_ENTITY_SYSTEM
 
 DEF_ENTITY_SYSTEM(CheckCollisions, A(Collider) | A(Transform))
-  ref t1 = getCmpE(Transform);
-  ref c1 = getCmpE(Collider);
-  ref entity1Id = entity.id;
+  Ref t1 = getCmpE(Transform);
+  Ref c1 = getCmpE(Collider);
+  Ref entity1Id = entity.id;
   float x1 = t1.pos.x - c1.width / 2;
   float y1 = t1.pos.y - c1.height / 2;
 
@@ -96,8 +94,8 @@ DEF_ENTITY_SYSTEM(CheckCollisions, A(Collider) | A(Transform))
       continue;
     }
 
-    ref t2 = getCmpE(Transform);
-    ref c2 = getCmpE(Collider);
+    Ref t2 = getCmpE(Transform);
+    Ref c2 = getCmpE(Collider);
 
     float x2 = t2.pos.x - c2.width / 2;
     float y2 = t2.pos.y - c2.height / 2;
@@ -116,10 +114,10 @@ DEF_ENTITY_SYSTEM(CheckCollisions, A(Collider) | A(Transform))
 END_ENTITY_SYSTEM
 
 DEF_ENTITY_SYSTEM(UpdateVehiclePositionForRender, A(Vehicle) | A(Transform))
-  ref t = getCmpE(Transform);
-  ref v = getCmpE(Vehicle);
-  ref paramsCurrent = v.paramsDynamicCurrent;
-  ref paramsStatic = v.paramsStatic;
+  Ref t = getCmpE(Transform);
+  Ref v = getCmpE(Vehicle);
+  Ref paramsCurrent = v.paramsDynamicCurrent;
+  Ref paramsStatic = v.paramsStatic;
 
   // t.x is already calculated in simulation or restored from frame
   t.pos.y = calcCenterYForLane(paramsCurrent.laneIndex_current);
@@ -132,15 +130,15 @@ DEF_ENTITY_SYSTEM(UpdateVehiclePositionForRender, A(Vehicle) | A(Transform))
   // super basic version without physics:
   // update orientation based on paramsCurrent.changingLaneProgress (amount of 45* degrees rotation)
   // and the Lane.horzDir direction (left or right!)
-  ref lane = getLaneForVehicle(state.currentLevel, v);
+  Ref lane = getLaneForVehicle(state.currentLevel, v);
   mat4_rotateZ(
       t.orientation, mat4_identity(t.orientation),
       toRadian(45) * CLAMP01(paramsCurrent.changingLaneProgress) * (-lane.horzDir));
 END_ENTITY_SYSTEM
 
 DEF_ENTITY_SYSTEM(UpdateFroggyForRender, A(Froggy) | A(Transform))
-  ref froggy = getCmpE(Froggy);
-  ref t = getCmpE(Transform);
+  Ref froggy = getCmpE(Froggy);
+  Ref t = getCmpE(Transform);
   mat4_identity(t.orientation);
   mat4_rotateZ(t.orientation, t.orientation,
                toRadian(froggy.state.yDirection == Up ? 0 : 180));
@@ -160,7 +158,7 @@ void goToPhase(Phase newPhase) {
   }
   else if (newPhase == RewindAnimation) {
     state.rewindCurrentFrameDtLeft = 0;
-    tweenFloat(state.tweens, REWIND_ANIM_SHADER_EFFECT_TURN_ON_DURATION, &state.camera.pos.z, 0.0f, 150.0f, Linear);
+    // tweenFloat(state.tweens, REWIND_ANIM_SHADER_EFFECT_TURN_ON_DURATION, &state.camera.pos.z, 0.0f, 150.0f, Linear);
   }
   else if (newPhase == ShowCollisionBeforeRewind) {
   }
@@ -225,21 +223,33 @@ bool onEvent(int eventType, int value) {
   return true;
 }
 
-void updateOnKeys() {
-  ref s = state.keyState;
+void updateOnKeys(float deltaTime) {
+  Ref s = state.keyState;
+
   if (s[KEY_RIGHT]) {
     if (state.phase == Playing) {
-      loadFrame(state.currentFrame + 10);
+      loadFrame(state.currentFrame + 5);
     }
   }
   else if (s[KEY_LEFT]) {
     if (state.phase == Playing) {
-      loadFrame(state.currentFrame - 10);
+      loadFrame(state.currentFrame - 5);
     }
   }
-  if (s[KEY_UP]) {
-  }
-  else if (s[KEY_DOWN]) {
+
+  if (state.selectedVehicleEntityId >= 0) {
+    // TODO ograniczyc wcisniecie klawisza - niech zmienia wartosc skokowo
+    bool isUp = s[KEY_UP];
+
+    if (isUp || s[KEY_DOWN]) {
+      Ref world = state.ecsWorld;
+      Ref v = getCmp(Vehicle, state.selectedVehicleEntityId);
+      float f = v.paramsConfiguredByPlayer.speedChangeFactor + (isUp ? 1 : -1) * 0.02f;
+      v.paramsConfiguredByPlayer.speedChangeFactor =
+          CLAMP(f, -v.paramsStatic->maxSlowdownFactor, v.paramsStatic->maxSpeedupFactor);
+
+      _lfstr("car.speedChangeFactor", v.paramsConfiguredByPlayer.speedChangeFactor);
+    }
   }
 
   if (s[102] /*KP_RIGHT*/ || s['D']) {
@@ -277,20 +287,7 @@ void renderGame(float deltaTime) {
 
   const float zNear = 0;
 
-  updateOnKeys();
-
-  // axis X goes right, axis Y goes down, axis Z goes towards viewer
-  mat4_perspective(getProjectionMatrix(), fieldOfView, aspectRatio, 1, 2000.0);
-  mat4_multiply(getProjectionMatrix(), getProjectionMatrix(), mat4_fromScaling(mat4Tmp, vec3_set(vec3Tmp, 1, -1, 1)));
-
-  // top left point is 0,0; center is width/2,height/2
-  mat4_translate(getViewMatrix(), mat4_identity(getViewMatrix()), vec3_set(vec3Tmp, -canvasWidth / 2, -canvasHeight / 2, -canvasHeight / 2.0));
-
-  // TODO state.camera.dir
-  float camZ = -state.camera.pos.z;
-  mat4_translate(getViewMatrix(), getViewMatrix(),
-                 vec3_set(vec3Tmp, -state.camera.pos.x, -state.camera.pos.y, camZ));
-  //TODO camera.dir
+  updateOnKeys(deltaTime);
 
   // process logic with ECS World
   EcsWorld &world = state.ecsWorld;
@@ -327,12 +324,35 @@ void renderGame(float deltaTime) {
     if (goToFrame >= 0) {
       loadFrame(goToFrame);
     }
-    // TODO
   }
+
+  if (phase == RewindAnimation || phase == Playing) {
+    // follow selected car in time an space
+    if (state.selectedVehicleEntityId >= 0) {
+      Ref vt = getCmp(Transform, state.selectedVehicleEntityId);
+      state.camera.pos.x = vt.pos.x - w / 2;
+
+      // update camera.pos.z so both car and frog would fit onto the screen
+    }
+  }
+
   UpdateVehiclePositionForRender(world);
   UpdateFroggyForRender(world);
 
-  const float z = zNear;
+  // axis X goes right, axis Y goes down, axis Z goes towards viewer
+  mat4_perspective(getProjectionMatrix(), fieldOfView, aspectRatio, 1, 2000.0);
+  mat4_multiply(getProjectionMatrix(), getProjectionMatrix(), mat4_fromScaling(mat4Tmp, vec3_set(vec3Tmp, 1, -1, 1)));
+
+  // top left point is 0,0; center is width/2,height/2
+  mat4_translate(getViewMatrix(), mat4_identity(getViewMatrix()), vec3_set(vec3Tmp, -canvasWidth / 2, -canvasHeight / 2, -canvasHeight / 2.0));
+
+  // TODO state.camera.dir
+  float camZ = -state.camera.pos.z;
+  mat4_translate(getViewMatrix(), getViewMatrix(),
+                 vec3_set(vec3Tmp, -state.camera.pos.x, -state.camera.pos.y, camZ));
+  //TODO camera.dir
+
+  float z = zNear;
   if (1) {
     // layout here is:
     // - grass
@@ -343,7 +363,7 @@ void renderGame(float deltaTime) {
     // - roadside
     // - grass
 
-    ref level = state.currentLevel;
+    Ref level = state.currentLevel;
     const int laneCount = level.params.laneCount;
     const float laneHeight = level.params.laneHeight;
     const float lanesGap = level.params.lanesGap;
@@ -391,9 +411,9 @@ void renderGame(float deltaTime) {
   // draw frog, we know there's only one
   if (1) {
     auto *frog = world.getFirstEntityByAspect(A(Froggy) | A(Transform) | A(Collider));
-    ref froggy = getCmp(Froggy, frog->id);
-    ref transform = getCmp(Transform, frog->id);
-    ref collider = world.getComponent<Collider>(frog->id);
+    Ref froggy = getCmp(Froggy, frog->id);
+    Ref transform = getCmp(Transform, frog->id);
+    Ref collider = world.getComponent<Collider>(frog->id);
 
     renderFrog(transform.pos.vec, transform.orientation);
 
@@ -403,17 +423,30 @@ void renderGame(float deltaTime) {
 
   // draw vehicles
   if (1) {
+    z += 0.5;
     FOR_EACH_ENTITY(world, A(Vehicle) | A(Transform))
-      ref v = getCmpE(Vehicle);
-      ref t = getCmpE(Transform);
-      ref c = getCmpE(Collider);
-      ref lane = getLaneForVehicle(state.currentLevel, v);
+      Ref v = getCmpE(Vehicle);
+      Ref t = getCmpE(Transform);
+      Ref c = getCmpE(Collider);
+      Ref lane = getLaneForVehicle(state.currentLevel, v);
 
       // debug: car color by type
       float
           x = t.pos.x - c.width / 2,
           y = t.pos.y - c.height / 2,
           frontWidth = 10;
+
+
+      // ghost for speed up / slow down
+      const float speedChangeFactor = v.paramsConfiguredByPlayer.speedChangeFactor;
+      if (speedChangeFactor != 0) {
+        float ghostFactor = abs(v.paramsConfiguredByPlayer.speedChangeFactor);
+        int ghostDir = SIGNUM(v.paramsConfiguredByPlayer.speedChangeFactor);
+        float ghostHeight = c.height * 0.85f;
+        setColor(0.4f, 1, 1, 1);
+        float ghostX = x + ghostFactor * c.width * 2 * ghostDir;
+        rect(ghostX, y + (c.height - ghostHeight) * 0.5f, z - 0.15f, c.width, ghostHeight);
+      }
 
       if (v.paramsStatic->type == FastCar) {
         float offset = frontWidth / c.width;
@@ -426,15 +459,19 @@ void renderGame(float deltaTime) {
         rect(x, y, z, c.width, c.height);
       }
 
+
       if (state.phase == Playing && entity.id == state.selectedVehicleEntityId) {
         setColor(0.4, 1, 1, 1);
-        rect(x, y, z, c.width, c.height);
+        float enlarge = 4;
+        rect(x-enlarge, y-enlarge, z - 0.1f, c.width+2*enlarge, c.height+2*enlarge);
       }
 
       // debug: front of car
       setColor(1, 1, 1, 0);
-      rect(t.pos.x + lane.horzDir * c.width / 2, t.pos.y - c.height / 2, z, frontWidth, c.height);
+      // rect(t.pos.x + lane.horzDir * c.width / 2, t.pos.y - c.height / 2, z, frontWidth, c.height * 0.25f);
+      // rect(t.pos.x + lane.horzDir * c.width / 2, t.pos.y - c.height / 2 + c.height*0.75f, z, frontWidth, c.height * 0.25f);
     END_FOR_EACH
+    z -= 0.5;
   }
 
   endFrame();

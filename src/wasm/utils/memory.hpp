@@ -3,6 +3,7 @@
 
 #include "../common.hpp"
 
+#ifndef WIN32
 extern "C" {
 void *malloc(size_t size);
 void free(void *ptr);
@@ -11,6 +12,10 @@ void memset(void *pointer, uchar value, uint size);
 
 extern size_t sbrk(size_t);
 }
+#else
+#include <malloc.h>
+#include <memory.h>
+#endif
 
 #define Allocate(type, count) (type *)malloc(sizeof(type) * count)
 

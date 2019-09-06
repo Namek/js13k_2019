@@ -9,7 +9,7 @@ float calcCenterX(float onLanePercent) {
 // * laneCount is top roadside
 // * laneCount+1 and -2 are grasses
 float calcCenterYForLane(int laneIndex) {
-  ref level = state.currentLevel;
+  Ref level = state.currentLevel;
 
   if (laneIndex == -2)
     return BASE_GAME_HEIGHT - state.currentLevel.render.grassHeight / 2;
@@ -53,17 +53,17 @@ bool isAnyVehicleOnSight(uint laneIndex, float x, float y, float rayWidth) {
   float left = x - rayWidth / 2;
   float right = x + rayWidth / 2;
 
-  ref world = state.ecsWorld;
+  Ref world = state.ecsWorld;
   FOR_EACH_ENTITY(world, A(Vehicle) | A(Transform) | A(Collider))
-    ref v = getCmpE(Vehicle);
+    Ref v = getCmpE(Vehicle);
 
     if (v.paramsDynamicCurrent.laneIndex_current != laneIndex ||
         v.paramsDynamicCurrent.laneIndex_target != laneIndex) {
       continue;
     }
 
-    ref vt = getCmpE(Transform);
-    ref vc = getCmpE(Collider);
+    Ref vt = getCmpE(Transform);
+    Ref vc = getCmpE(Collider);
 
     float vw2 = vc.width / 2;
 

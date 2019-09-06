@@ -153,7 +153,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
   const runProgram = (result) => {
     /*============ Creating WebGL context ==================*/
     const
-      gl = canvas.getContext('webgl2')
+      gl = canvas.getContext('webgl2', {premultipliedAlpha: false})
     , gl_bindBuffer = function() { gl.bindBuffer.apply(gl, arguments) }
     , gl_bufferData = function() { gl.bufferData.apply(gl, arguments) }
     , gl_createBuffer = () => gl.createBuffer()
@@ -178,7 +178,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
     //removeIf(production)
     log(exports)
     //endRemoveIf(production)
-      
+
     /*============== Defining the geometry ==============*/
 
     const buffer_vertex = gl_createBuffer()
@@ -248,10 +248,6 @@ document.addEventListener("DOMContentLoaded", (event) => {
   
     const shaderProgram = linkShaders(gl, vertCode, fragCode)
     gl.useProgram(shaderProgram)
-  
-    /*======= Associating shaders to buffer objects =======*/
-  
-    gl_bindBuffer(gl_ELEMENT_ARRAY_BUFFER, buffer_index)
 
     for (let attribParam of [["pos", 3, buffer_vertex], ["nor", 3, buffer_normal], ["color", 4, buffer_color], ["texC", 2, buffer_texCoords]]) {
       gl_bindBuffer(gl_ARRAY_BUFFER, attribParam[2])
@@ -325,7 +321,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
 
       const texture = gl.createTexture()
       gl.bindTexture(gl_TEXTURE_2D, texture)
-  
+
       // gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1); // use bottom-down storage
       gl.texImage2D(gl_TEXTURE_2D, 0, gl_RGBA, texW, texH, 0, gl_RGBA, gl_UNSIGNED_BYTE, texBytes);
       gl.generateMipmap(gl_TEXTURE_2D);
@@ -365,6 +361,10 @@ document.addEventListener("DOMContentLoaded", (event) => {
         ? () => { gl[u + suffix](loc, false, wasm_data) }
         : () => { gl[u + suffix](loc, wasm_data) }
 
+      //removeIf(production)
+      fetchValue.name = name;
+      //endRemoveIf(production)
+
       shaderUniforms.push(fetchValue)
     }
 
@@ -398,7 +398,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
     let previousRenderTimestamp = null
 
     clearFrame = () => {
-      gl.clearColor(0.2, 0.2, 0.8, 1)
+      gl.clearColor(0, 0, 0, 1)
       gl.clearDepth(1.0)
       gl.enable(gl_DEPTH_TEST)
       gl.depthFunc(gl_LEQUAL)
@@ -442,9 +442,9 @@ document.addEventListener("DOMContentLoaded", (event) => {
       previousRenderTimestamp = timestamp
 
       // should call performDrawCall() at least once
-      exports._render(deltaTime)
-  
       gl.viewport(0, 0, canvas.width, canvas.height)
+      exports._render(deltaTime)
+
       requestAnimationFrame(render)
     }
 

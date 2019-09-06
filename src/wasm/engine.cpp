@@ -39,6 +39,17 @@ int *preinit(void *heapStart) {
 void initEngine() {
   int *ret = e.funcReturn;
 
+  #ifdef WIN32
+  e.renderColorBuffer = Allocate(float, SIZE_RENDER_COLOR_BUFFER);
+  e.renderVertexBuffer = Allocate(float, SIZE_RENDER_VERTEX_BUFFER);
+  e.renderIndexBuffer = Allocate(int, SIZE_RENDER_INDEX_BUFFER);
+  e.renderTexCoordsBuffer = Allocate(float, SIZE_RENDER_TEXCOORDS_BUFFER);
+  e.renderNormalBuffer = Allocate(float, SIZE_RENDER_NORMAL_BUFFER);
+
+  // internal memory
+  e.currentColor = (float *)malloc(SIZE_CURRENT_COLOR);
+  const int OFFSET_DYNAMIC_MEMORY = align((int)e.currentColor + SIZE_CURRENT_COLOR, 16);
+  #else
   e.renderColorBuffer = FLOAT_PTR(e.funcReturn, e.funcReturn_size);
   e.renderVertexBuffer = FLOAT_PTR(e.renderColorBuffer, SIZE_RENDER_COLOR_BUFFER);
   e.renderIndexBuffer = INT_PTR(e.renderVertexBuffer, SIZE_RENDER_VERTEX_BUFFER);
@@ -48,6 +59,9 @@ void initEngine() {
   // internal memory
   e.currentColor = FLOAT_PTR(e.renderNormalBuffer, SIZE_RENDER_NORMAL_BUFFER);
   const int OFFSET_DYNAMIC_MEMORY = align((int)e.currentColor + SIZE_CURRENT_COLOR, 16);
+
+  ret[12] = OFFSET_DYNAMIC_MEMORY;
+  #endif
 
   ret[0] = VALUES_PER_COLOR;
   ret[1] = VALUES_PER_VERTEX;
@@ -61,7 +75,6 @@ void initEngine() {
   ret[9] = (int)e.renderIndexBuffer;
   ret[10] = (int)e.renderTexCoordsBuffer;
   ret[11] = (int)e.renderNormalBuffer;
-  ret[12] = OFFSET_DYNAMIC_MEMORY;
 
   registerShaderUniform("projMat", SHADER_UNIFORM_Matrix4fv, e.projectionMatrix);
   registerShaderUniform("viewMat", SHADER_UNIFORM_Matrix4fv, e.viewMatrix);

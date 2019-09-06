@@ -3,17 +3,12 @@
 
 #include "../common.hpp"
 
-float const PI = 3.141592653589793;
-const float PI_180 = 0.017453292519943295; // PI/180.0
-float const EPSILON = 0.000001;
+float const PI = 3.141592653589793f;
+const float PI_180 = 0.017453292519943295f; // PI/180.0
+float const EPSILON = 0.000001f;
 float const degree = PI_180;
 
 float toRadian(float a);
-
-#define X 0
-#define Y 1
-#define Z 2
-#define W 3
 
 // sizes
 int const VEC_SIZE_3 = 3;
@@ -50,6 +45,7 @@ union Mat4
 int CLAMP255(int a);
 float CLAMP01(float a);
 float LERP(float alpha, float from, float to);
+int SIGNUM(float val);
 
 extern float mathTmp[VEC_SIZE_3 + VEC_SIZE_4 + MAT_SIZE_4];
 #define vec3Tmp (float *)mathTmp
