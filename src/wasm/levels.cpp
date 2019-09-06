@@ -40,8 +40,8 @@ void initLevel(int levelIndex) {
   LevelParams levelParams;
 
   levelParams.lanesGap = 4;
-  levelParams.roadsideHeight = 40;
-  levelParams.laneHeight = 70;
+  levelParams.roadsideWidth = 40;
+  levelParams.laneWidth = 70;
 
   VehicleStaticParams *vehiclesStatic;
 
@@ -90,8 +90,8 @@ void initLevel(int levelIndex) {
   }
 
   state.currentLevel.params = levelParams;
-  state.currentLevel.render.roadHeight = levelParams.laneCount * levelParams.laneHeight + ((levelParams.laneCount - 1) * levelParams.lanesGap);
-  state.currentLevel.render.grassHeight = (BASE_GAME_HEIGHT - state.currentLevel.render.roadHeight - 2 * levelParams.roadsideHeight) / 2;
+  state.currentLevel.render.roadWidth = levelParams.laneCount * levelParams.laneWidth + ((levelParams.laneCount - 1) * levelParams.lanesGap);
+  state.currentLevel.render.grassWidth = 1000;
 
   // Frog
   {
@@ -130,10 +130,9 @@ void initLevel(int levelIndex) {
       v.paramsDynamicCurrent = vehicleConfig->paramsDynamicInitial;
       v.paramsStatic = vehicleConfig->paramsStatic;
       v.paramsDynamicSimulatedFrames.init(sizeof(VehicleTimeFrame));
-      v.paramsConfiguredByPlayer.speedChangeFactor = 0;
       // v.paramsConfiguredByPlayer.laneChange = 0;
 
-      vc.height = state.currentLevel.params.laneHeight * 0.85f;
+      vc.height = state.currentLevel.params.laneWidth * 0.85f;
       vc.width = 120;
 
       vt.pos.x = vehicleConfig->x;

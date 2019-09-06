@@ -1,6 +1,6 @@
 #include "game.hpp"
-#include "textures.hpp"
 #include "models/models.hpp"
+#include "textures.hpp"
 
 GameState state;
 
@@ -9,11 +9,11 @@ DEF_ENTITY_SYSTEM(SimulateVehicle, A(Vehicle))
   ref vt = getCmpE(Transform);
 
   // change speed due to player's settings
-  ref speedChangeFactor = v.paramsConfiguredByPlayer.speedChangeFactor;
-  if (speedChangeFactor != 0) {
-    v.paramsDynamicCurrent.speed += speedChangeFactor * deltaTime * deltaTime;
-    v.paramsDynamicCurrent.speed = CLAMP(v.paramsDynamicCurrent.speed, 0, v.paramsStatic->maxSpeed);
-  }
+  // ref speedChangeFactor = v.paramsConfiguredByPlayer.speedChangeFactor;
+  // if (speedChangeFactor != 0) {
+  //   v.paramsDynamicCurrent.speed += speedChangeFactor * deltaTime * deltaTime;
+  //   v.paramsDynamicCurrent.speed = CLAMP(v.paramsDynamicCurrent.speed, 0, v.paramsStatic->maxSpeed);
+  // }
 
   // TODO in future, we should simulate some more physics instead of updating horz/vert separately
 
@@ -184,8 +184,9 @@ void initGame() {
   state.levelGarbage.init(sizeof(void *));
   int sizes[] = COMPONENT_TYPE_SIZES;
   initEcsWorld(state.ecsWorld, sizes, COMPONENT_TYPE_COUNT);
-  vec3_set(state.camera.pos.vec, 0, 0, 0);
+  vec3_set(state.camera.pos.vec, 500, 0, 0);
   vec3_set(state.camera.dir.vec, 0, 0, -1);
+  vec3_set(state.camera.rot.vec, 0, 0, toRadian(-90));
 
   initLevel(0);
   goToPhase(Simulate); // Intro;
@@ -288,8 +289,13 @@ void renderGame(float deltaTime) {
 
   // TODO state.camera.dir
   float camZ = -state.camera.pos.z;
-  mat4_translate(getViewMatrix(), getViewMatrix(),
-                 vec3_set(vec3Tmp, -state.camera.pos.x, -state.camera.pos.y, camZ));
+  auto matCam = getViewMatrix();
+  mat4_rotateZ(matCam, matCam, state.camera.rot.z);
+  mat4_translate(
+      matCam,
+      matCam,
+      vec3_set(vec3Tmp, -state.camera.pos.x, -state.camera.pos.y, camZ));
+
   //TODO camera.dir
 
   // process logic with ECS World
@@ -345,47 +351,52 @@ void renderGame(float deltaTime) {
 
     ref level = state.currentLevel;
     const int laneCount = level.params.laneCount;
-    const float laneHeight = level.params.laneHeight;
+    const float laneWidth = level.params.laneWidth;
     const float lanesGap = level.params.lanesGap;
-    const float roadsideHeight = level.params.roadsideHeight;
-    const float grassHeight = level.render.grassHeight;
-    const float roadHeight = level.render.roadHeight;
+    const float roadsideWidth = level.params.roadsideWidth;
+    const float grassWidth = level.render.grassWidth;
+    const float roadWidth = level.render.roadWidth;
 
-    const float roadWidth = w * 4;
-    const float roadLeft = -roadWidth / 2 + w2;
-    const float roadRight = roadWidth / 2 + w2;
+    const float roadLength = w * 4;
+    const float roadBegin = 0;
+    const float roadEnd = roadLength;
+    float roadX = 0;
 
-    // grass - top
-    texQuad(TEXTURE_GRASS,
-            roadLeft, 0, z, 0, 0,
-            roadRight, 0, z, roadWidth / grassHeight, 0,
-            roadRight, grassHeight, z, roadWidth / grassHeight, 1,
-            roadLeft, grassHeight, z, 0, 1);
-
-    // grass - bottom
+    // grass - left
     texRect(TEXTURE_GRASS,
-            roadLeft, h - grassHeight, z, roadWidth, grassHeight,
-            roadWidth / grassHeight, 1.0f);
+            roadBegin, roadX, z, roadLength, grassWidth,
+            roadLength / grassWidth, 1.0f);
 
-    float roadY = grassHeight + roadsideHeight;
+    roadX += grassWidth;
 
-    // roadsides
+    // roadside left
     setColorLeftToRight(1, 0.6, 0.6, 0.6, 0.5, 0.5, 0.5);
-    rect(roadLeft, roadY - roadsideHeight, z, roadWidth, roadsideHeight);
-    rect(roadLeft, roadY + roadHeight, z, roadWidth, roadsideHeight);
+    rect(roadBegin, roadX, z, roadLength, roadsideWidth);
+    roadX += roadsideWidth;
 
     // black road
     setColorLeftToRight(1, 0.1, 0.1, 0.1, 0, 0, 0);
-    rect(roadLeft, roadY, z, roadWidth, roadHeight);
+    rect(roadBegin, roadX, z, roadLength, roadWidth);
 
-    // lane gaps - top to bottom
-    float laneY = roadY + roadHeight;
+    // lane gaps - left to right
+    float laneX = roadX + roadWidth;
     for (int i = 0; i < laneCount - 1; ++i) {
-      laneY -= (laneHeight + lanesGap);
+      laneX -= (laneWidth + lanesGap);
 
       setColor(1, 1, 1, 1);
-      rect(roadLeft, laneY, z, roadWidth, lanesGap);
+      rect(roadBegin, laneX, z, roadLength, lanesGap);
     }
+    roadX += roadWidth;
+
+    // roadside right
+    setColorLeftToRight(1, 0.6, 0.6, 0.6, 0.5, 0.5, 0.5);
+    rect(roadBegin, roadX, z, roadLength, roadsideWidth);
+    roadX += roadsideWidth;
+    
+    // grass - right
+    texRect(TEXTURE_GRASS,
+            roadBegin, roadX, z, roadLength, grassWidth,
+            roadLength / grassWidth, 1.0f);
   }
 
   // draw frog, we know there's only one

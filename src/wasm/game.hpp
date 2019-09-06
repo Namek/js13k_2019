@@ -66,17 +66,6 @@ struct VehicleStaticParams {
   bool playerCanChangeLane;
 };
 
-// set by a player, essential part of whole gameplay
-struct VehicleConfiguredParams {
-  // default is 0, lower than 0 is to the length of `maxSlowdownFactor`, greater than 0 is up to `maxSpeedupFactor`
-  float speedChangeFactor;
-
-  // default is 0 which means no change. -1 is lane lower, +1 is upper.
-  // Player can change it only if `playerCanChangeLane` is true.
-  // int laneChange;
-  // TODO maybe it will disappear because there are 2 ways of changing lane: by player, by AI; not sure if those can play well and understandably together.
-};
-
 // effect of simulation
 struct VehicleDynamicParams {
   float speed;
@@ -111,8 +100,6 @@ DEF_COMPONENT(Vehicle)
 
   // history of frames
   Array /* of VehicleTimeFrame */ paramsDynamicSimulatedFrames;
-
-  VehicleConfiguredParams paramsConfiguredByPlayer;
 END_COMPONENT
 
 enum FrogPhase
@@ -174,18 +161,18 @@ struct LevelParams {
   int maxLaneSpeed;
   Lane *laneDefinitions; //TODO transform it to array?
   int laneCount;
-  float laneHeight;
+  float laneWidth;
   float lanesGap;
-  float roadsideHeight;
+  float roadsideWidth;
   float froggyThinkingTime; //seconds
   float froggyXPosition;    //0..1 - percent of screen
   VertDir froggyDirection;
 };
 
-// based on laneHeight, laneCount
+// based on laneWidth, laneCount
 struct LevelRenderCache {
-  float roadHeight;
-  float grassHeight;
+  float roadWidth;
+  float grassWidth;
 };
 
 struct Level {
@@ -197,6 +184,7 @@ struct Level {
 struct Camera {
   Vec3 pos;
   Vec3 dir;
+  Vec3 rot;
 };
 
 struct RecordedFrame {

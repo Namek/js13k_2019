@@ -12,24 +12,24 @@ float calcCenterYForLane(int laneIndex) {
   ref level = state.currentLevel;
 
   if (laneIndex == -2)
-    return BASE_GAME_HEIGHT - state.currentLevel.render.grassHeight / 2;
+    return BASE_GAME_HEIGHT - state.currentLevel.render.grassWidth / 2;
   else if (laneIndex == state.currentLevel.params.laneCount + 1)
-    return state.currentLevel.render.grassHeight / 2;
+    return state.currentLevel.render.grassWidth / 2;
 
-  float y = BASE_GAME_HEIGHT - state.currentLevel.render.grassHeight;
+  float y = BASE_GAME_HEIGHT - state.currentLevel.render.grassWidth;
 
   if (laneIndex >= 0)
-    y -= level.params.roadsideHeight;
+    y -= level.params.roadsideWidth;
   else {
-    y -= level.params.roadsideHeight / 2;
+    y -= level.params.roadsideWidth / 2;
     return y;
   }
 
   // go to center of bottom lane
-  y -= level.params.laneHeight / 2;
+  y -= level.params.laneWidth / 2;
 
   // if we want other lane then jump every whole lane (including the gap)
-  float halfLane = level.params.laneHeight / 2 + level.params.lanesGap / 2;
+  float halfLane = level.params.laneWidth / 2 + level.params.lanesGap / 2;
   for (int i = 0; i < laneIndex; ++i) {
     y -= halfLane * 2;
   }
@@ -39,7 +39,7 @@ float calcCenterYForLane(int laneIndex) {
     y += halfLane;
 
     // from edge of the roadside to it's center
-    y -= level.params.roadsideHeight / 2;
+    y -= level.params.roadsideWidth / 2;
   }
 
   return y;
