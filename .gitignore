@@ -2,3 +2,6 @@ build/
 node_modules/
 dist/
 .vscode/
+.vs/
+gl/Debug/
+*.user

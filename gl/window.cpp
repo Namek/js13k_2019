@@ -84,6 +84,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow) {
   hRC = wglCreateContext(hDC);
   wglMakeCurrent(hDC, hRC);
   glewInit();
+  glEnable(GL_DEBUG_OUTPUT);
 
   RECT rect;
   GetClientRect(hWnd, &rect);
