@@ -8,7 +8,6 @@
 #include <functional>
 #include <vector>
 
-
 const uint SIZE_FUNC_RETURN = 100;
 static int engine_funcReturnValues[SIZE_FUNC_RETURN];
 int VALUES_PER_VERTEX, VALUES_PER_COLOR, VALUES_PER_TEXCOORD = 2;
@@ -25,7 +24,7 @@ GLuint shaderProgram;
 
 void compileShaders();
 
-void APIENTRY debugProc(
+void GLAPIENTRY debugProc(
     GLenum source,
     GLenum type,
     GLuint id,
@@ -46,16 +45,15 @@ void checkGLError() {
   }
 }
 
-int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
-                      _In_opt_ HINSTANCE hPrevInstance,
-                      _In_ LPWSTR lpCmdLine,
-                      _In_ int nCmdShow) {
-  UNREFERENCED_PARAMETER(hPrevInstance);
-  UNREFERENCED_PARAMETER(lpCmdLine);
+int main() {
+  sf::ContextSettings settings;
+  settings.depthBits = 24;
+  settings.majorVersion = 3;
+  settings.minorVersion = 2;
+  sf::Window window(sf::VideoMode(CANVAS_WIDTH, CANVAS_HEIGHT, 32), "gl", sf::Style::Titlebar | sf::Style::Close, settings);
 
-  if (!InitInstance(hInstance, nCmdShow)) {
-    return FALSE;
-  }
+  glewExperimental = GL_TRUE;
+  glewInit();
 
   glDebugMessageCallback(debugProc, NULL);
 
@@ -93,33 +91,25 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
   initGame();
 
-  MSG msg;
-  bool quit = false;
-  LARGE_INTEGER freq, prevTime, curTime;
+  bool running = false;
 
-  QueryPerformanceFrequency(&freq);
-  QueryPerformanceCounter(&prevTime);
-  while (!quit) {
-    if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
-      if (msg.message == WM_QUIT) {
-        quit = TRUE;
-      }
-      else {
-        TranslateMessage(&msg);
-        DispatchMessage(&msg);
+  sf::Clock clock;
+  while (running) {
+    sf::Event windowEvent;
+    while (window.pollEvent(windowEvent)) {
+      switch (windowEvent.type) {
+      case sf::Event::Closed:
+        running = false;
+        break;
       }
     }
-    else {
-      QueryPerformanceCounter(&curTime);
-      float elapsed = (curTime.QuadPart - prevTime.QuadPart) / (float)freq.QuadPart;
-      prevTime.QuadPart = curTime.QuadPart;
 
-      render(elapsed);
-      SwapBuffers(hDC);
-    }
+    sf::Time dt = clock.restart();
+    render(dt.asSeconds());
+    window.display();
   }
 
-  return (int)msg.wParam;
+  return 0;
 }
 
 GLuint compileShader(GLuint type, const char *code) {
@@ -256,7 +246,7 @@ void compileShaders() {
 //  WM_DESTROY  - post a quit message and return
 //
 //
-LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
+/*LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
   switch (message) {
   case WM_DESTROY: {
     wglMakeCurrent(NULL, NULL);
@@ -297,7 +287,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
   }
   return DefWindowProc(hWnd, message, wParam, lParam);
   //return 0;
-}
+}*/
 
 float getCanvasWidth() {
   return CANVAS_WIDTH;

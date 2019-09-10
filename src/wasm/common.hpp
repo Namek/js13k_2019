@@ -18,7 +18,9 @@ typedef unsigned int uint;
 #endif
 #define Ref auto &
 
+#ifndef WIN32
 extern "C" {
+#endif
 #ifndef PRODUCTION
 extern void _abort(const char *text);
 extern void _l(int);    //logging int
@@ -35,7 +37,7 @@ extern void _lfstr(const char *text, float num);
 
 #ifdef WIN32
 #include <stdlib.h>
-#include <math.h>
+#include <cmath>
 #define randomf() ((float)rand() / (float)RAND_MAX)
 #define abs(a) fabs(a)
 #else
@@ -51,6 +53,9 @@ extern float sqrt(float);
 extern float abs(float);
 extern float pow(float, float);
 #endif
+
+#ifndef WIN32
 }
+#endif
 
 #endif
