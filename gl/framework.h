@@ -22,5 +22,4 @@
 //#include <GL/glu.h>
 //#include <GL\glaux.h> 
 
-#define SFML_STATIC
 #include <SFML/Window.hpp>

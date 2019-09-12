@@ -134,9 +134,6 @@
     <ClCompile Include="..\src\wasm\tween.cpp">
       <Filter>Source Files\common</Filter>
     </ClCompile>
-    <ClCompile Include="window.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="gl.rc">
